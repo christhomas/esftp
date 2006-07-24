@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.0"?>
+<plugin>   
+   <extension
+         point="org.eclipse.ui.popupMenus">
+      <objectContribution
+            adaptable="true"
+            id="org.kmem.kosh.sftp.Menu"
+            objectClass="org.eclipse.core.resources.IResource">
+         <menu
+               id="org.kmem.kosh.sftp"
+               label="ESftp">
+            <separator name="group"/>
+         </menu>
+         <action
+			class="org.kmem.kosh.sftp.actions.GetSelection"
+			definitionId="org.kmem.kosh.sftp.get"
+			id="org.kmem.kosh.sftp.getItem"
+			label="Get File From Server"
+			menubarPath="org.kmem.kosh.sftp/group"/>
+		<action
+	        class="org.kmem.kosh.sftp.actions.PutSelection"
+	        definitionId="org.kmem.kosh.sftp.put"
+	        id="org.kmem.kosh.sftp.putItem"
+	        label="Put File to Server"
+	        menubarPath="org.kmem.kosh.sftp/group"/>
+		<action
+	        class="org.kmem.kosh.sftp.actions.PutSaveSelection"
+	        definitionId="org.kmem.kosh.sftp.putSave"
+	        id="org.kmem.kosh.sftp.putSaveItem"
+	        label="Put File to Server and Save"
+	        menubarPath="org.kmem.kosh.sftp/group"/>
+      </objectContribution>
+   </extension>
+   <extension
+         point="org.eclipse.ui.preferencePages">
+      <page
+            class="org.kmem.kosh.sftp.ui.Workbench"
+            id="org.kmem.kosh.sftp.properties.Workbench"
+            name="ESftp"/>
+   </extension>
+   <extension
+         point="org.eclipse.ui.propertyPages">
+      <page
+            class="org.kmem.kosh.sftp.ui.Project"
+            id="org.kmem.kosh.sftp.properties.Project"
+            name="ESftp"
+            objectClass="org.eclipse.core.resources.IProject"/>
+   </extension>
+
+	<extension point="org.eclipse.ui.actionSets">
+		<actionSet label="ESftp" visible="true"
+			id="org.kmem.kosh.sftp.actionSet">
+			<menu label="ESf&amp;tp"
+			id="org.kmem.kosh.sftp.esftpmenu"
+			path="window">
+				<separator name="ESftpGroupMenu"></separator>
+			</menu>
+			<action
+         class="org.kmem.kosh.sftp.actions.PutSelection"
+         definitionId="org.kmem.kosh.sftp.put"
+         icon="icons/put.gif"
+         id="org.kmem.kosh.sftp.putActionSet"
+         label="&amp;Put File"
+         menubarPath="org.kmem.kosh.sftp.esftpmenu/ESftpGroupMenu"
+         toolbarPath="ESftpGroupMenu"
+         tooltip="Put File to Server">
+			</action>
+			<action
+         class="org.kmem.kosh.sftp.actions.PutSaveSelection"
+         definitionId="org.kmem.kosh.sftp.putSave"
+         icon="icons/put.gif"
+         id="org.kmem.kosh.sftp.putSaveActionSet"
+         label="&amp;Put+Save File"
+         menubarPath="org.kmem.kosh.sftp.esftpmenu/ESftpGroupMenu"
+         toolbarPath="ESftpGroupMenu"
+         tooltip="Put File to Server and Save">
+			</action>
+			<action
+         class="org.kmem.kosh.sftp.actions.GetSelection"
+         definitionId="org.kmem.kosh.sftp.get"
+         icon="icons/get.gif"
+         id="org.kmem.kosh.sftp.getActionSet"
+         label="&amp;Get File"
+         menubarPath="org.kmem.kosh.sftp.esftpmenu/ESftpGroupMenu"
+         toolbarPath="ESftpGroupMenu"
+         tooltip="Get file from remote">
+			</action>
+		</actionSet>
+	</extension>
+
+	<extension point="org.eclipse.ui.commands">
+		<category name="EsftpCategory"
+			description="ESftp Commands"
+			id="org.kmem.kosh.sftp.commandCategory">
+		</category>
+		<command
+			categoryId="org.kmem.kosh.sftp.commandCategory"
+			name="Put File to Server"
+			id="org.kmem.kosh.sftp.put" />
+		<command
+        categoryId="org.kmem.kosh.sftp.commandCategory"
+        id="org.kmem.kosh.sftp.putSave"
+        name="Put File to Server and Save"/>
+		<command
+			categoryId="org.kmem.kosh.sftp.commandCategory"
+			name="Get File from Server"
+			id="org.kmem.kosh.sftp.get" />
+	</extension>
+	<extension point="org.eclipse.ui.bindings">
+		<key sequence="Ctrl+Alt+P"
+			commandId="org.kmem.kosh.sftp.put"
+			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" />
+		<key sequence="Ctrl+Alt+S"
+			commandId="org.kmem.kosh.sftp.putSave"
+			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" />
+		<key sequence="Ctrl+Alt+G"
+			commandId="org.kmem.kosh.sftp.get"
+			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" />
+	</extension>
+</plugin>

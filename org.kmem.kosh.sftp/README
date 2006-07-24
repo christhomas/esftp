@@ -1,0 +1,129 @@
+ESFTP - an Eclipse plug-in to allow file transfer to and from SFTP servers
+http://esftp.sourceforge.net
+Author: Christopher Alexander Thomas
+Email: chris.alex.thomas@gmail.com
+
+ABSTRACT
+Esftp is an Eclipse plug-in to transfer files to and from SFTP servers, it uses the SFTP protocol to transfer the files.
+Internally, it uses the JSSH2 and JSch library, which you can find at 
+
+http://sourceforge.net/projects/sshtools
+
+and
+
+http://sourceforge.net/projects/jsch
+
+SFTP site preferences are available on a workbench or project level, if you want an entire workbench of projects 
+to go to the site SFTP site, then this can happen using inherited preferences.  File transfer to and from the server
+are possible.
+
+To operate, click the files you wish to transfer, right click one of them and select the ESFTP option, then either
+GET or PUT the files and ESftp will look through the projects the files are associated with and upload/download
+those files to the servers that are configured
+
+The only problem I can see, is when a project contains meta-infomation, where the actual files are marked up
+to display nice little java packages.  This isnt something I know about so it's not something I can do yet.
+PHP people are going to be happy, Java programmers, help me to help you, if you know how to do this, tell me
+I'll implement it and you can have it.
+
+INSTALL
+1.	Download esftp.zip and esftp-lib.zip from sourceforge.net or wherever you got it from
+2.	Open the zip file with your favourite tool or utility that can extract zip files.
+3.	unzip the contents into the eclipse directory, you'll notice that inside the zip, is a folder called "plugins"
+	this matches inside the eclipse directory, you also have a folder called "plugins"
+4.	Open the plugins directory and locate the org.kmem.kosh.sftp_<versionnum> directory, open it
+5.	Open the esftp-lib.zip file and extract the "lib" directory, INTO that folder you just opened
+	This will install the necessary libraries for esftp to run
+	
+once these files are extracted into the appropriate directories, the plugin will appear:
+
+eclipse/plugins/org.kmem.kosh.sftp_<versionnum>
+
+example:	eclipse/plugins/org.kmem.kosh.sftp_1.0.0
+
+6.	run eclipse with the -clean command line option, to make sure the plugin correctly becomes identified in eclipse
+7.	verify eclipse has the plugin, open the window menu and select preferences
+	look in the options given, do you see "ESftp" if so, click that option, you should get a page where you
+	can enter Secure FTP details about where you want files to transfer to.
+
+if this was successful, you now have the plugin installed correctly.	Otherwise, email me
+	
+WHY IS ESFTP SEPARATE FROM IT'S LIBRARIES:
+
+I found that the libraries for esftp are 2MB compressed, so what I did was realise that the libraries
+are updated very slowly, whilst the codebase for esftp updates very quickly, so I created a new download
+called esftp-lib which incorporates all the libraries separate from the esftp plugin.   Which means every new plugin
+version I make, it only means a 100KB download, which is a big saving for many bandwidth limited people.
+
+HOW DO I KNOW WHICH ESFTP-LIB TO DOWNLOAD:
+
+They are labelled after their respective releases, for example, the first version of this "new idea" was 1.0.5
+so you have a file release called 1.0.5 and you'll notice two files
+
+esftp-1.0.5.zip
+esftp-lib-1.0.5+.zip
+
+the 1.0.5+ means, this library file, goes with any esftp version, above 1.0.5, hence the + after it.
+
+Maybe I update the plugin, but the libraries stay the same, this means I release ONLY the plugin, hence:
+
+esftp-1.0.8.zip
+
+which library do you use? well, the last library release before this was 1.0.5+, which as you have now figured out
+is the version of the library to use with 1.0.8 AS WELL (esftp-lib-1.0.5+.zip)
+
+At some point, I might update the libraries, which means say I release these files - 
+
+esftp.1.1.0.zip
+esftp-lib-1.1.0+.zip
+
+What this means, is that to use 1.1.0, you need the libraries as well, but what this also means, is that esftp-lib-1.0.5+.zip
+WILL NOT WORK with 1.1.0, since it's been superceeded by esftp-lib-1.1.0.zip
+
+I HOPE! this all works out the way I think it should and I hope you all find these instructions useful in fixing issues you have
+
+COMMON INSTALLATION PROBLEMS
+1.	You have esftp and esftp installed, you goto install a new esftp version, but it doesnt require a new esftp-lib installation 
+	cause it can use the one from the previous version, you delete the plugin directory and install the new esftp.  Not realising
+	that you've just deleted the esftp-lib files.  When you goto run esftp now, it'll "do nothing" which is what happens when
+	you try to run esftp without a esftp-lib package installed.
+	
+	RESOLUTION: Install the esftp-lib again, or don't delete the main directory and just delete/overwrite the files necessary
+
+LICENSE
+ESFTP is released under the LGPL
+If you didn't received a copy of the license with the software (inside the file called LICENCE)
+you can obtain one at:
+
+http://www.opensource.org/licenses/eclipse-1.0.php
+http://www.opensource.org/licenses/eclipse-1.0.txt
+
+FEATURES
+- You can define workbench defaults or per project SFTP site details
+- It can use Java Secure Channel as a Java SSH2 protocol implementation (http://www.jcraft.com/jsch/)
+- Later versions rely on the better JSSH2 api (http://sourceforge.net/project/sshtools)
+- Allows transfer of recurse directories and create empty directory configuration
+- Optional timeout allows you to configure for slow connecting hosts (like the test box I used, 486DX2/66)
+- Optimises the selected files/folders to a final set of transfer items, pruning out unnecessary items
+
+FUTURE (Current TODO list)
+1.	Passwords are ALWAYS saved, regardless of sftp option status
+2.	No window appears or has been made to allow user to enter a password when save is disabled
+3.	Upon querying a remote server for items, those which don't exist, should be pruned from the file list
+4.	The workbench should refresh before scanning local items to make the file list 
+	(same is true when retrieving files from remote server)
+5.	Option of HASHING the transferred files, to prune out identical files from the file list early
+	(maybe too intensive/cpu hogging to implement hashing every file you transfer)
+6.	the ESFTP options do not have a browse button for the site root 
+	(would require also connecting to the site root and obtaining file system data to display/choose from)
+
+BUGS AND LIMITATIONS
+- Eclipse opens java projects with some markup of the actual file data, so it puts nice package icons which 
+	are not as straight forward to operate as normal files/folders (HELP ME)
+
+CONTRIBUTE TO ESFTP
+If you want to help, you can come to sourceforge and help out in any way you can.
+http://esftp.sourceforge.net
+http://sourceforge.net/projects/esftp
+
+please help in any way you can
