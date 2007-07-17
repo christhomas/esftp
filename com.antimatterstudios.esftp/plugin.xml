@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.2"?>
+<plugin>  
+   <extension
+         point="org.eclipse.ui.popupMenus">
+      <objectContribution
+            adaptable="true"
+            id="com.antimatterstudios.esftp.Menu"
+            objectClass="org.eclipse.core.resources.IResource">
+         <menu
+               id="com.antimatterstudios.esftp"
+               label="ESftp">
+            <separator name="group"/>
+         </menu>
+         <action
+			class="com.antimatterstudios.esftp.actions.GetSelection"
+			definitionId="com.antimatterstudios.esftp.get"
+			id="com.antimatterstudios.esftp.getItem"
+			label="Get File From Server"
+			menubarPath="com.antimatterstudios.esftp/group"/>
+		<action
+	        class="com.antimatterstudios.esftp.actions.PutSelection"
+	        definitionId="com.antimatterstudios.esftp.put"
+	        id="com.antimatterstudios.esftp.putItem"
+	        label="Put File to Server"
+	        menubarPath="com.antimatterstudios.esftp/group"/>
+		<action
+	        class="com.antimatterstudios.esftp.actions.PutSaveSelection"
+	        definitionId="com.antimatterstudios.esftp.putSave"
+	        id="com.antimatterstudios.esftp.putSaveItem"
+	        label="Put File to Server and Save"
+	        menubarPath="com.antimatterstudios.esftp/group"/>
+      </objectContribution>
+   </extension>
+   <extension
+         point="org.eclipse.ui.preferencePages">
+      <page
+            class="com.antimatterstudios.esftp.ui.Workbench"
+            id="com.antimatterstudios.esftp.properties.Workbench"
+            name="ESftp"/>
+   </extension>
+   <extension
+         point="org.eclipse.ui.propertyPages">
+      <page
+            class="com.antimatterstudios.esftp.ui.Project"
+            id="com.antimatterstudios.esftp.properties.Project"
+            name="ESftp"
+            objectClass="org.eclipse.core.resources.IProject"/>
+   </extension>
+
+	<extension point="org.eclipse.ui.actionSets">
+		<actionSet label="ESftp" visible="true"
+			id="com.antimatterstudios.esftp.actionSet">
+			<menu label="ESf&amp;tp"
+			id="com.antimatterstudios.esftp.esftpmenu"
+			path="window">
+				<separator name="ESftpGroupMenu"></separator>
+			</menu>
+			<action
+         class="com.antimatterstudios.esftp.actions.PutSelection"
+         definitionId="com.antimatterstudios.esftp.put"
+         icon="icons/put.gif"
+         id="com.antimatterstudios.esftp.putActionSet"
+         label="&amp;Put File"
+         menubarPath="com.antimatterstudios.esftp.esftpmenu/ESftpGroupMenu"
+         toolbarPath="ESftpGroupMenu"
+         tooltip="Put File to Server">
+			</action>
+			<action
+         class="com.antimatterstudios.esftp.actions.PutSaveSelection"
+         definitionId="com.antimatterstudios.esftp.putSave"
+         icon="icons/put.gif"
+         id="com.antimatterstudios.esftp.putSaveActionSet"
+         label="&amp;Put+Save File"
+         menubarPath="com.antimatterstudios.esftp.esftpmenu/ESftpGroupMenu"
+         toolbarPath="ESftpGroupMenu"
+         tooltip="Put File to Server and Save">
+			</action>
+			<action
+         class="com.antimatterstudios.esftp.actions.GetSelection"
+         definitionId="com.antimatterstudios.esftp.get"
+         icon="icons/get.gif"
+         id="com.antimatterstudios.esftp.getActionSet"
+         label="&amp;Get File"
+         menubarPath="com.antimatterstudios.esftp.esftpmenu/ESftpGroupMenu"
+         toolbarPath="ESftpGroupMenu"
+         tooltip="Get file from remote">
+			</action>
+		</actionSet>
+	</extension>
+
+	<extension point="org.eclipse.ui.commands">
+		<category name="EsftpCategory"
+			description="ESftp Commands"
+			id="com.antimatterstudios.esftp.commandCategory">
+		</category>
+		<command
+			categoryId="com.antimatterstudios.esftp.commandCategory"
+			name="Put File to Server"
+			id="com.antimatterstudios.esftp.put" />
+		<command
+        categoryId="com.antimatterstudios.esftp.commandCategory"
+        id="com.antimatterstudios.esftp.putSave"
+        name="Put File to Server and Save"/>
+		<command
+			categoryId="com.antimatterstudios.esftp.commandCategory"
+			name="Get File from Server"
+			id="com.antimatterstudios.esftp.get" />
+	</extension>
+	<extension point="org.eclipse.ui.bindings">
+		<key sequence="Ctrl+Alt+P"
+			commandId="com.antimatterstudios.esftp.put"
+			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" />
+		<key sequence="Ctrl+Alt+S"
+			commandId="com.antimatterstudios.esftp.putSave"
+			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" />
+		<key sequence="Ctrl+Alt+G"
+			commandId="com.antimatterstudios.esftp.get"
+			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" />
+	</extension>
+</plugin>
