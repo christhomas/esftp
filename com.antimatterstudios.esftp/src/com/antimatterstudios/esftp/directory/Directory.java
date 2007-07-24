@@ -36,7 +36,7 @@ public abstract class Directory {
 	public abstract void process(Object item, Vector files, Vector folders);
 	
 	/** 
-	 * Convert a absolute filesystem name to a relative one
+	 * Convert a absolute file system name to a relative one
 	 * 
 	 * @param item	The absolute path to convert
 	 * @returns String The new relative path

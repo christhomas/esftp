@@ -45,7 +45,8 @@
             class="com.antimatterstudios.esftp.ui.Project"
             id="com.antimatterstudios.esftp.properties.Project"
             name="ESftp"
-            objectClass="org.eclipse.core.resources.IProject"/>
+            objectClass="org.eclipse.core.resources.IProject"
+            adaptable="true"/>
    </extension>
 
 	<extension point="org.eclipse.ui.actionSets">

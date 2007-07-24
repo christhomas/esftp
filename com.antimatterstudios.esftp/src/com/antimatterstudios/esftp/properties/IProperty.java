@@ -25,6 +25,7 @@ public interface IProperty {
 	public static final String VERIFIED = "verified";
 	public static final String SERVER = "server";
 	public static final String PORT = "port";
+	public static final String PROTOCOL = "protocol";
 	public static final String TIMEOUT = "timeout";
 	public static final String USERNAME = "Username";
 	public static final String PASSWORD = "Password";

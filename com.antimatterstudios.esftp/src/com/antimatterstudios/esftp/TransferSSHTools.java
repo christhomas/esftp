@@ -264,8 +264,6 @@ public class TransferSSHTools extends Transfer {
 				}
 			}
 		}
-		if(m_open) System.out.println("OPEN SUCCEEDED");
-		else System.out.println("OPEN FAILED");
 		
 		return m_open;
 	}
@@ -274,7 +272,10 @@ public class TransferSSHTools extends Transfer {
 		if(m_ssh != null && m_sftp != null){
 			try{
 				m_sftp.quit();
+				m_sftp = null;
+				
 				m_ssh.disconnect();
+				m_ssh = null;
 			}catch(IOException e){
 				setTask(TASK_ERROR, new String[]{m_errorPrefix+"Failed to disconnect properly"});
 			}
@@ -397,7 +398,6 @@ public class TransferSSHTools extends Transfer {
 		try{
 			//	Stat the requested site root
 			FileAttributes attrib = m_sftp.stat(file);
-			m_output.println("[ryan]attrib = "+attrib+", attrib string = "+attrib.toString());
 			
 			//	If file, great, return it's filesize, otherwise return -1
 			//	If doesnt exist, throw exception
@@ -408,47 +408,8 @@ public class TransferSSHTools extends Transfer {
 		
 		return size;
 	}
-
-	/**	Test the server details to make sure it exists
-	 * 
-	 *	This is to test whether the details used are correct, if they are not
-	 *	a connection will not be made to the remote server, if they are, then of course
-	 *	everything is fine
-	 *
-	 * @return	True or false, depending on whether the connection was successful
-	 */
-	public boolean test(){
-		//	Open the server
-		boolean status = open();
-		if(status == true){
-			//	Output all server information
-			m_output.append("\nChecking Server: \n");
-			m_output.append("Address: "+m_details.getServer()+"\n");
-			m_output.append("SFTP Server: "+m_ssh.getServerId()+"\n");
-			m_output.append("Server connected successfully\n\n");
-			
-			try{
-				m_output.append("Checking Site root: \n");
-				status = isDirectory(m_details.getSiteRoot());
-				
-				if(status == true){
-					m_output.append("Site root exists\n");
-				}else{
-					m_output.append("ILLEGAL: The requested site root, is a recognised file\n");
-				}
-			}catch(Exception e){
-//				Site root doesnt exist, better say so
-				m_output.append("WARNING: Site root does NOT exist\n");
-				m_output.append("(Possibly this is because it doesnt exist yet)\n");
-			}
-			
-			m_output.append("SERVER TEST: OK\n");
-		}else{
-			m_output.append("SERVER TEST: FAILED\n");
-			status = false;
-		}
-		//	Close the server and return the status
-		close();
-		return status;
+	
+	protected String getServerId(){
+		return m_ssh.getServerId();
 	}
 }

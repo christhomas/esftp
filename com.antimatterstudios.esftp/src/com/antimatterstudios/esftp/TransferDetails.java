@@ -23,13 +23,14 @@ package com.antimatterstudios.esftp;
 
 import org.eclipse.core.runtime.*;
 import org.eclipse.core.resources.*;
+
 import com.antimatterstudios.esftp.Digest;
 import com.antimatterstudios.esftp.properties.*;
 
 public class TransferDetails {
 	protected IProject m_project;
 	protected String m_key = null;
-	protected PropertyStore m_store;
+	protected EsftpPreferences m_store;
 	
     public  static int GET = 0;
 	public  static int PUT = 1;	
@@ -43,21 +44,15 @@ public class TransferDetails {
 
 		m_project = project;
 		
-		/*if(m_project instanceof IProject){
-			System.out.println("instanceof says: this is a IProject object");
-		}else{
-			System.out.println("instanceof says: this is NOT a IProject object");
-		}*/
-		
 		//	Obtain site details here		
-		m_store = new ProjectPropertyStore(m_project);
+		m_store = new ProjectPreferences(m_project);
 	}
 	
 	/**
 	 *	Initialise the transfer object with sftp details 
 	 *	These either come from the project properties, or the workspace preferences
 	 */	
-	public TransferDetails(PropertyStore store){
+	public TransferDetails(EsftpPreferences store){
 		//System.out.println("TRACE-> TransferDetails::TransferDetails(PropertyStore), are we testing the sftp server?");
 		m_store = store;
 	}
@@ -135,9 +130,7 @@ public class TransferDetails {
 	
 		if(p != null){
 			return p.toPortableString()+"/";
-		}/*else{
-			System.out.println("getLocation(): path is NOT valid");
-		}*/
+		}
 
 		return "";
 	}	

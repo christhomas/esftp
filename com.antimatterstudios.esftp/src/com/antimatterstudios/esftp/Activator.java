@@ -1,16 +1,20 @@
 package com.antimatterstudios.esftp;
 
 import java.util.Vector;
+import java.util.Dictionary;
 
-import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
-
+import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.IWorkbenchPage;
-import org.eclipse.jface.preference.IPreferenceStore;
+import org.osgi.service.prefs.Preferences;
 import org.eclipse.jface.resource.ImageDescriptor;
+import org.eclipse.core.runtime.preferences.DefaultScope;
+import org.eclipse.core.runtime.preferences.IEclipsePreferences;
+
 import com.antimatterstudios.esftp.directory.FileList;
 import com.antimatterstudios.esftp.properties.IProperty;
+import com.antimatterstudios.esftp.properties.EsftpPreferences;
 import com.antimatterstudios.esftp.ui.ConsoleDisplayMgr;
 import com.antimatterstudios.esftp.FilterWriter;
 
@@ -28,6 +32,7 @@ public class Activator extends AbstractUIPlugin
 	protected Digest m_hash;
 	protected Vector<Transfer> m_transfer;
 	protected boolean m_state = false;
+	protected String m_version;
 	
 	public static ConsoleDisplayMgr cons = ConsoleDisplayMgr.getDefault("ESftp Console");
 	
@@ -73,30 +78,23 @@ public class Activator extends AbstractUIPlugin
 	 * Initializes a preference store with default preference values 
 	 * for this plug-in.
 	 */
-	protected void initializeDefaultPreferences(IPreferenceStore store) {
-		//System.out.println("TRACE-> initializeDefaultPreferences()");
-		store.setDefault(IProperty.SERVER,"<Enter server address>");
-		store.setDefault(IProperty.PORT,22);
-		store.setDefault(IProperty.TIMEOUT, 30);
-		store.setDefault(IProperty.USERNAME,"<Enter Username>");
-		store.setDefault(IProperty.PASSWORD,"");
-		store.setDefault(IProperty.SAVEPWD,true);
-		store.setDefault(IProperty.RECURSE,true);
-		store.setDefault(IProperty.EMPTY,true);
-		store.setDefault(IProperty.SITEROOT,"");
-	}	
-	
-	public void setDefaultPreferences(){
-		IPreferenceStore store = getDefault().getPreferenceStore();
-		store.setToDefault(IProperty.SERVER);
-		store.setToDefault(IProperty.PORT);
-		store.setToDefault(IProperty.TIMEOUT);
-		store.setToDefault(IProperty.USERNAME);
-		store.setToDefault(IProperty.PASSWORD);
-		store.setToDefault(IProperty.SAVEPWD);
-		store.setToDefault(IProperty.RECURSE);
-		store.setToDefault(IProperty.EMPTY);
-		store.setToDefault(IProperty.SITEROOT);
+	protected void initialiseDefaultPreferences() {
+		System.out.println("INITIALISING DEFAULTS");
+		IEclipsePreferences store = new DefaultScope().getNode("com.antimatterstudios.esftp");
+		
+		store.put(IProperty.SERVER, "<Enter server address>");
+		store.putInt(IProperty.PORT,22);
+		store.putInt(IProperty.PROTOCOL,0);
+		store.putInt(IProperty.TIMEOUT, 30);
+		store.put(IProperty.USERNAME,"<Enter Username>");
+		store.put(IProperty.PASSWORD,"");
+		store.putBoolean(IProperty.SAVEPWD,true);
+		store.putBoolean(IProperty.RECURSE,true);
+		store.putBoolean(IProperty.EMPTY,true);
+		store.put(IProperty.SITEROOT,"<Enter Site Root>");
+		
+		EsftpPreferences p = new EsftpPreferences(store);
+		p.debug();
 	}
 
 	/*
@@ -106,6 +104,15 @@ public class Activator extends AbstractUIPlugin
 	public void start(BundleContext context) throws Exception {
 		super.start(context);
 		m_plugin = this;
+		Dictionary headers = context.getBundle().getHeaders();
+		String version = "UNKNOWN";
+		try{
+			version = (String)headers.get("Bundle-Version");
+		}catch(NullPointerException e){}
+		
+		m_plugin.setVersion(version);
+		
+		initialiseDefaultPreferences();
 	}
 
 	/*
@@ -147,6 +154,16 @@ public class Activator extends AbstractUIPlugin
 	
 	public Transfer getTransfer(){
 		return new TransferSSHTools();
+	}
+	
+	public void setVersion(String version)
+	{
+		m_version = version;
+	}
+	
+	public String getVersion()
+	{
+		return m_version;
 	}
 	
 	/**

@@ -25,11 +25,12 @@ import org.eclipse.swt.widgets.*;
 import org.eclipse.ui.dialogs.PropertyPage;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.jface.dialogs.MessageDialog;
-import com.antimatterstudios.esftp.properties.ProjectPropertyStore;
+
+import com.antimatterstudios.esftp.properties.ProjectPreferences;
 
 public class Project extends PropertyPage {
-	private UserInterface m_interface;
-	private ProjectPropertyStore m_store;
+	protected UserInterface m_interface;
+	protected ProjectPreferences m_store;
 	
 	/**
 	 * This method initializes 
@@ -40,34 +41,28 @@ public class Project extends PropertyPage {
 		m_interface= new UserInterface();
 	}
 
-	protected Control createContents(Composite parent) {
-		//System.out.println("TRACE-> Project::createContents()");
-		
-		m_store = new ProjectPropertyStore((IProject)getElement());
+	protected Control createContents(Composite parent) { 
+		m_store = new ProjectPreferences((IProject)getElement()); // TODO: Move to the constructor
 		
 		return m_interface.open(parent,m_store);
 	}
 	
 	public boolean performOk() {
-		//System.out.println("TRACE-> Project->performOk()");
-
 		//store all the preferences
-		if(m_interface.close(m_store) == false){
+		if(m_interface.close() == false){
 			//	Open message box informing the user to test these settings before proceeding
 			Shell shell = new Shell();
-			MessageDialog.openWarning(shell,
-					"SFTP Not Verified","The SFTP details are not verified.  It is recommended that you test them before you proceed");
+			MessageDialog.openWarning(	
+					shell,
+					"SFTP Not Verified",
+					"The SFTP details are not verified.  It is recommended that you test them before you proceed");
 		}
 		
 		return super.performOk();
 	}
 	
 	public void performDefaults(){
-		m_interface.restoreDefaults(m_store);
-	}
-	
-	public boolean performCancel(){
-		performDefaults();
-		return super.performCancel();
+		m_store.restoreDefaults();
+		m_interface.updateInterface();
 	}
 }

@@ -353,9 +353,11 @@ public abstract class Transfer extends Job{
 
 	public abstract void list(String directory, Vector<String> files, Vector<String> folders);
 	
+	public abstract boolean isDirectory(String dir) throws Exception;
+	
 	public abstract long isFile(String filename) throws Exception;
 	
-	public abstract boolean test();
+	protected abstract String getServerId();
 	
 	//	TODO: Transfer::appendFile() This isnt implemented yet
 	public void appendFilelist(FileList fl){
@@ -513,5 +515,48 @@ public abstract class Transfer extends Job{
 		getSize.run("GB");
 	
 		return getSize.getString();
+	}
+	
+	/**	Test the server details to make sure it exists
+	 * 
+	 *	This is to test whether the details used are correct, if they are not
+	 *	a connection will not be made to the remote server, if they are, then of course
+	 *	everything is fine
+	 *
+	 * @return	True or false, depending on whether the connection was successful
+	 */
+	public boolean test(){
+		//	Open the server
+		boolean status = open();
+		if(status == true){
+			//	Output all server information
+			m_output.append("\nChecking Server: \n");
+			m_output.append("Address: "+m_details.getServer()+"\n");
+			m_output.append("SFTP Server: "+getServerId()+"\n");
+			m_output.append("Server connected successfully\n\n");
+			
+			try{
+				m_output.append("Checking Site root: \n");
+				status = isDirectory(m_details.getSiteRoot());
+				
+				if(status == true){
+					m_output.append("Site root exists\n");
+				}else{
+					m_output.append("ILLEGAL: The requested site root, is a recognised file\n");
+				}
+			}catch(Exception e){
+//				Site root doesnt exist, better say so
+				m_output.append("WARNING: Site root does NOT exist\n");
+				m_output.append("(Possibly this is because it doesnt exist yet)\n");
+			}
+			
+			m_output.append("SERVER TEST: OK\n");
+		}else{
+			m_output.append("SERVER TEST: FAILED\n");
+			status = false;
+		}
+		//	Close the server and return the status
+		close();
+		return status;
 	}
 }
