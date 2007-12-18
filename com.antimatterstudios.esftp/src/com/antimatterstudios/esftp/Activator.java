@@ -1,5 +1,6 @@
 package com.antimatterstudios.esftp;
 
+import java.net.URL;
 import java.util.Vector;
 import java.util.Dictionary;
 
@@ -7,16 +8,12 @@ import org.osgi.framework.BundleContext;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.IWorkbenchPage;
-import org.osgi.service.prefs.Preferences;
 import org.eclipse.jface.resource.ImageDescriptor;
-import org.eclipse.core.runtime.preferences.DefaultScope;
-import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 
 import com.antimatterstudios.esftp.directory.FileList;
 import com.antimatterstudios.esftp.properties.IProperty;
-import com.antimatterstudios.esftp.properties.EsftpPreferences;
+import com.antimatterstudios.esftp.properties.DefaultPreferences;
 import com.antimatterstudios.esftp.ui.ConsoleDisplayMgr;
-import com.antimatterstudios.esftp.FilterWriter;
 
 /**
  * The activator class controls the plug-in life cycle
@@ -25,12 +22,9 @@ public class Activator extends AbstractUIPlugin
 {
 	//	The shared instance
 	private static Activator m_plugin;
-	
-	//	FilterWriter debug class
-	private FilterWriter m_output;
-	
+		
 	protected Digest m_hash;
-	protected Vector<Transfer> m_transfer;
+	protected Vector m_transfer;
 	protected boolean m_state = false;
 	protected String m_version;
 	
@@ -45,19 +39,12 @@ public class Activator extends AbstractUIPlugin
 	public Activator() {
 		m_plugin = this;
 		
-//		Create a new FilterWriter object + enable console output
-		m_output = new FilterWriter();
-		m_output.enableConsole(true);
 		//	create a new Digest object
 		m_hash = new Digest();
 		//	Create a new Transfer Vector
-		m_transfer = new Vector<Transfer>();
+		m_transfer = new Vector();
 	}
-	
-	public FilterWriter getFilterWriter(){
-		return m_output;
-	}
-	
+		
 	public static void consolePrint(String msg, int msgKind) {
 		cons.print(msg,msgKind);
 	}
@@ -80,21 +67,7 @@ public class Activator extends AbstractUIPlugin
 	 */
 	protected void initialiseDefaultPreferences() {
 		System.out.println("INITIALISING DEFAULTS");
-		IEclipsePreferences store = new DefaultScope().getNode("com.antimatterstudios.esftp");
-		
-		store.put(IProperty.SERVER, "<Enter server address>");
-		store.putInt(IProperty.PORT,22);
-		store.putInt(IProperty.PROTOCOL,0);
-		store.putInt(IProperty.TIMEOUT, 30);
-		store.put(IProperty.USERNAME,"<Enter Username>");
-		store.put(IProperty.PASSWORD,"");
-		store.putBoolean(IProperty.SAVEPWD,true);
-		store.putBoolean(IProperty.RECURSE,true);
-		store.putBoolean(IProperty.EMPTY,true);
-		store.put(IProperty.SITEROOT,"<Enter Site Root>");
-		
-		EsftpPreferences p = new EsftpPreferences(store);
-		p.debug();
+		new DefaultPreferences();
 	}
 
 	/*
@@ -141,7 +114,17 @@ public class Activator extends AbstractUIPlugin
 	 * @return the image descriptor
 	 */
 	public static ImageDescriptor getImageDescriptor(String path) {
-		return AbstractUIPlugin.imageDescriptorFromPlugin("com.antimatterstudios.esftp", path);
+		ImageDescriptor image = null;
+		System.out.println("getImageDescriptor: path = "+path);
+		URL url = Activator.getDefault().getBundle().getEntry(path);
+		try{
+			if(url == null) System.out.println("URL is null, this will NPE");
+			image = AbstractUIPlugin.imageDescriptorFromPlugin(Activator.PLUGIN_ID, url.toString());
+		}catch(NullPointerException e){
+			System.out.println("NPE caught in getImageDescriptor");
+		}
+		
+		return image;
 	}
 	
 	/**
@@ -152,8 +135,21 @@ public class Activator extends AbstractUIPlugin
 		return m_hash;
 	}
 	
-	public Transfer getTransfer(){
-		return new TransferSSHTools();
+	public Transfer getTransfer(int protocol){
+		System.out.println("Activator::getTransfer(), protocol requested = "+protocol);
+		if(protocol != IProperty.PROTOCOL_FTPTLS || protocol != IProperty.PROTOCOL_FTPSSL){ // NOTE: These protocols are disabled for now
+			//if(protocol == IProperty.PROTOCOL_FTP) return new TransferFTP4CHE(protocol);
+			if(protocol == IProperty.PROTOCOL_FTP) return new TransferEdtftpj(protocol);
+		}
+		
+		if(protocol == IProperty.PROTOCOL_SFTP) return new TransferSSHTools();
+		
+		return null;
+	}
+	
+	public Transfer getTransfer(TransferDetails details)
+	{
+		return getTransfer(details.getProtocol());
 	}
 	
 	public void setVersion(String version)
@@ -190,12 +186,16 @@ public class Activator extends AbstractUIPlugin
 			}
 			
 			//System.out.println("SftpPlugin::add(), couldnt find existing transfer object, create new");
-			Transfer t = getTransfer();
-			t.init(fl,key);
-			m_transfer.add(t);
-			t.setRule(fl.getProject());
-			t.setUser(true);
-			t.schedule();
+			Transfer t = getTransfer(fl.getDetails().getProtocol());
+			if(t != null){
+				t.init(fl,key);
+				m_transfer.add(t);
+				t.setRule(fl.getProject());
+				t.setUser(true);
+				t.schedule();
+			}else{
+				System.out.println("Error: protocol specified was invalid, fatal error, cannot continue");
+			}
 		}
 	}
 	
