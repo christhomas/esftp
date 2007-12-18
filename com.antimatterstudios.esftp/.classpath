@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="src" path="src"/>
+	<classpathentry excluding="com/antimatterstudios/esftp/TransferFTP4CHE.java" kind="src" path="src"/>
 	<classpathentry exported="true" kind="lib" path="lib/commons-logging.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/esftp-sshtools.jar"/>
-	<classpathentry kind="lib" path="lib/ftp4che-0.7.1.jar"/>
+	<classpathentry kind="lib" path="lib/edtftpj.jar" sourcepath="f:/projects/external/edtftpj-1.5.5/src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="con" path="org.eclipse.pde.core.requiredPlugins"/>
 	<classpathentry kind="output" path="bin"/>
