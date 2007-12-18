@@ -22,6 +22,7 @@
 package com.antimatterstudios.esftp;
 
 import com.antimatterstudios.esftp.directory.FileList;
+import com.antimatterstudios.esftp.ui.ConsoleDisplayMgr;
 import com.antimatterstudios.esftp.ui.TransferResultsConsole;
 
 import java.text.DecimalFormat;
@@ -90,7 +91,7 @@ class getSize{
 public abstract class Transfer extends Job{
 	protected FileList m_fileList = null;
 	protected TransferDetails m_details;
-	protected FilterWriter m_output;
+	protected String m_output;
 	protected String m_errorPrefix;	
 	
 	//	Time variables
@@ -126,6 +127,7 @@ public abstract class Transfer extends Job{
 	public static final int TASK_TRANSFER = 2;
 	public static final int TASK_COMPLETE = 3;
 	public static final int TASK_ERROR = 4;
+	public static final int TASK_CANCEL = 5;
 	
 	public static final int STASK_SCANNING = 0;
 	public static final int STASK_PREPARE = 1;
@@ -139,10 +141,7 @@ public abstract class Transfer extends Job{
 	 */
 	public void init(TransferDetails transfer){
 		//System.out.println("TRACE-> Transfer::init(TransferDetails)");
-		m_details = transfer;
-		
-		m_output = Activator.getDefault().getFilterWriter();
-		
+		m_details = transfer;		
 	}	
 	
 	/**	Creates a transfer object for the SFTP site
@@ -236,16 +235,16 @@ public abstract class Transfer extends Job{
 			
 			//	If the item is a directory, set the status to exist, same for files
 			if(f.isDirectory() == true){
-				m_fileList.setStatus(m_count, FileList.DEXIST);
+				m_fileList.setStatus(m_count, FileList.MSG_DEXIST);
 			}else{
-				m_fileList.setStatus(m_count, FileList.DFEXIST);
+				m_fileList.setStatus(m_count, FileList.MSG_DFEXIST);
 				return;
 			}
 		}catch(Exception e){
 			//	If the item doesnt exist, create a directory with the same name
 			File f = new File(m_details.getLocalRoot()+dir);
 			f.mkdir();
-			m_fileList.setStatus(m_count, FileList.OK);
+			m_fileList.setStatus(m_count, FileList.MSG_OK);
 		}
 	}
 
@@ -257,22 +256,19 @@ public abstract class Transfer extends Job{
 		
 		//	Now you have a list of files/folders and the server is opened, 
 		//	set the local and remote directories
-		if(setDirectories() == false){
+		/*if(setDirectories() == false){
 			setTask(TASK_ERROR, new String[]{m_errorPrefix+"Failed to change remote directory to the Site root, or failed to create it"});
 			return Status.CANCEL_STATUS; 
-		}
+		}*/
+		
 		//	Start the monitor
-		/*	10,000 means that you can track <1% updates
-		 *	if you have completed 0.04% of the workload, eclipse
-		 *	doesnt let you update by 0.04%, cause it's less than 1
-		 *	you can't update at all.  So what I've done, is multiply each
-		 *	unit by 100, which means 0.04 becomes 4, but therefore
-		 *	to accomodate all 100% you have to also multiply that by 100
-		 *	so 100% complete becomes 10,000 units of work, each 1% of the
-		 *	work becomes 100 units, so therefore you can track <1% updates
-		 *	(IS THIS A SHIT EXPLANATION? tell me a better one)
+		/*	
+			We need to specify the number of steps to complete the process we are about to start
+			we are interested to know the percentages with two decimal places, the way to get this
+			is to multiply our completed percent (100) by 100, which will mean that each increase in
+			this number, will result in a 0.01% increase in completion, so 1% = 100, 100% = 10000, or 100x100
 		 */		
-		m_monitor.beginTask("Transferring files",10000);
+		m_monitor.beginTask("Transferring files",100*100);
 		
 		//	Set the monitor to show preparation step
 		setSubTask(STASK_PREPARE,null);
@@ -283,9 +279,10 @@ public abstract class Transfer extends Job{
 		System.out.println("Number of bytes to transfer: "+m_bytesTotal);
 
 		String item = null;
-		for(m_count=0;m_count<m_fileCount;m_count++){			
+		for(m_count=0;m_count<m_fileCount;m_count++){
 			//	Pull an item from the list to transfer it
 			item = m_fileList.getFile(m_count);
+			System.out.println("Transferring item: "+item);
 			
 			//	Set the task and subtask strings to show transfer information
 			setTask(TASK_TRANSFER, new String[] { mode, item });				
@@ -299,7 +296,7 @@ public abstract class Transfer extends Job{
 				dir += item.substring(0,i)+"/";
 				//	Remove that directory from the item being created
 				item = item.substring(i+1);
-				
+				System.out.println("Create directory: "+dir);
 				//	Create either a local or remote directory
 				if(m_fileList.getMode() == TransferDetails.GET){
 					createLocalDirectory(dir);
@@ -307,32 +304,39 @@ public abstract class Transfer extends Job{
 					createRemoteDirectory(dir);
 				}
 			}
+			System.out.println("item name = '"+item+"'");
 			
 			//	If the item is left with a trailing string, it'll be a file, create it
-			if(!item.equals("/") && item.length() > 0){
+			if(item.length() != 0){
+				String result = FileList.MSG_OK;
 				try{
 					transfer(dir,item);
-					//	if no exception, means we are ok
-					m_fileList.setStatus(m_count,FileList.OK);
 				}catch(Exception e){
-					//System.out.println("transfer exception: "+e.getMessage()+": cause: "+e.getCause());
+					//	System.out.println("transfer exception: "+e.getMessage()+": cause: "+e.getCause());
 					//	If exception, failed to put the file
-					m_fileList.setStatus(m_count,FileList.FAILED);
+					result = FileList.MSG_FAILED;
+					//	Output some helpful information
+					Activator.consolePrintln("EXCEPTION: There was a problem transferring: "+dir+item, ConsoleDisplayMgr.MSG_ERROR);
+					Activator.consolePrintln("EXCEPTION INFO: LocalRoot = "+m_details.getLocalRoot(),ConsoleDisplayMgr.MSG_ERROR);
+					Activator.consolePrintln("EXCEPTION INFO: SiteRoot = "+m_details.getSiteRoot(),ConsoleDisplayMgr.MSG_ERROR);
+					Activator.consolePrintln("EXCEPTION INFO: message = "+e.getMessage(),ConsoleDisplayMgr.MSG_ERROR);
 				}
+				
+				m_fileList.setStatus(m_count,result);
 			}else{
 				//	If the item was a directory it will set a status whether it created 
 				//	or not, however if we have no status information for this directory
 				//	something unknown happened, so set DUNKNOWN 
 				//	say it, D unknown, Dee unknown, the unknown (get it?)
-				if(m_fileList.getStatus(m_count).equals(FileList.NOSTATUS)){
-					m_fileList.setStatus(m_count, FileList.DUNKNOWN);
+				if(m_fileList.getStatus(m_count).equals(FileList.MSG_NOSTATUS)){
+					m_fileList.setStatus(m_count, FileList.MSG_DUNKNOWN);
 				}
 			}
 			
 			//	If the monitor is cancelled, you return 
 			//	here, you don't want to continue
 			if (m_monitor.isCanceled()){
-				m_fileList.setStatus(m_count,FileList.CANCEL);
+				m_fileList.setStatus(m_count,FileList.MSG_CANCEL);
 				return Status.CANCEL_STATUS; 
 			}			
 		}
@@ -340,18 +344,31 @@ public abstract class Transfer extends Job{
 		return s;
 	}
 	
-	public abstract void createMonitor();
+	public boolean isCancelled()
+	{
+		boolean state = m_monitor.isCanceled();
+		System.out.println("Transfer::isCancelled(), returning "+state);
+		return state;
+	}
 	
+	public void requestCancellation()
+	{
+		m_monitor.setCanceled(true);
+		close();
+	}
+	
+	public abstract void createMonitor();
+		
 	public abstract void transfer(String dir, String item) throws Exception;
 	
 	public abstract void cancelTransfer();
 	
-	public abstract boolean setDirectories();
+	//public abstract boolean setDirectories();
 	
 	//	TODO: pauses the transfer (not in mid-file, mid-batch)
 	public void pause(){}
 
-	public abstract void list(String directory, Vector<String> files, Vector<String> folders);
+	public abstract boolean list(String directory, Vector files, Vector folders);
 	
 	public abstract boolean isDirectory(String dir) throws Exception;
 	
@@ -407,10 +424,14 @@ public abstract class Transfer extends Job{
 					if(task.length >= 1){
 						m_monitor.setTaskName("ERROR: "+task[0]);
 						for(int a=0;a<task.length;a++){
-							m_output.append(task[a]+"\n");
+							m_output += task[a]+"\n";
 							System.out.println(task[a]);
 						}
 					}
+				break;
+				
+				case TASK_CANCEL:
+					m_monitor.setTaskName("Transfer cancelled by user, please wait");
 				break;
 			}
 		}
@@ -454,11 +475,13 @@ public abstract class Transfer extends Job{
 	}
 	
 	public String getTransferOuput(){
-		return m_output.toString();
+		String s = m_output;
+		m_output = "";
+		return s;
 	}	
 	
 	public String getNumberFiles(){
-		return PaddedString.rpad("File: "+m_count+"/"+m_fileCount,25); 
+		return PaddedString.rpad("File: "+m_count+"/"+m_fileCount,25);
 	}
 	
 	public String getTransferSize(){
@@ -476,6 +499,20 @@ public abstract class Transfer extends Job{
 		return PaddedString.rpad(( df.format(m_percent) +" % Complete"),25);
 	}
 	
+	/**
+	 * method:	getTimeLeft
+	 * 
+	 * Return a string which represents the amount of time left in the current operation
+	 * 
+	 * operations:
+	 * 	-	Make sure the current speed is not zero (prevents a divide by zero)
+	 * 	-	calculate the number of seconds remaining
+	 * 	-	setup the getTime static class and call it with various fields which represents amounts of time (years, months, days, etc)
+	 * 	-	return the string, but pad it out to 40 characters to make it fit a required width
+	 * 
+	 * returns:
+	 * 	A human readable string which repsents the amount of time left in the current operation
+	 */
 	public String getTimeLeft(){
 		//	prevent divide by 0 zero
 		if(m_speed != 0){
@@ -504,12 +541,37 @@ public abstract class Transfer extends Job{
 		m_bytes+=bytes;
 	}
 	
+	/**
+	 * method:	getTransferSpeed
+	 * 
+	 * Return a string which represents the number of units per second being transferred
+	 * 
+	 * returns:
+	 * 	A string containing a human readable representation of the current transfer rate
+	 */
 	public String getTransferSpeed(){
 		return PaddedString.rpad("Speed: "+interpretBytes(m_speed)+"/sec", 20);
 	}
 	
+	/**
+	 * method:	interpretBytes
+	 * 
+	 * Convert a number of bytes into a human representable figure
+	 * 
+	 * parameters:
+	 * 	input	-	The number of bytes to interpret
+	 * 
+	 * returns:
+	 * 	A string which represents a human readable version of the number of bytes
+	 *  
+	 * operations:
+	 * 	-	reset the getSize static class and call it repeatedly
+	 * 	-	With each call, use either b(bytes), KB(kilobytes), MB(megabytes), GB(gigabytes) until it returns a human readable version
+	 */
 	protected String interpretBytes(long input){
+		getSize.postfix = "b";  // need to reset
 		getSize.bytes = input;
+		
 		getSize.run("KB");
 		getSize.run("MB");
 		getSize.run("GB");
@@ -517,42 +579,44 @@ public abstract class Transfer extends Job{
 		return getSize.getString();
 	}
 	
-	/**	Test the server details to make sure it exists
+	/**	
+	 * method: test
 	 * 
-	 *	This is to test whether the details used are correct, if they are not
-	 *	a connection will not be made to the remote server, if they are, then of course
-	 *	everything is fine
+	 * Test the server details to make sure it exists and whether the details used 
+	 * are correct, if they are not a connection will not be made to the remote 
+	 * server, if they are, then of course everything is fine
 	 *
-	 * @return	True or false, depending on whether the connection was successful
+	 * returns:
+	 * 	Boolean true or false, depending on whether the connection was successful
 	 */
 	public boolean test(){
 		//	Open the server
 		boolean status = open();
 		if(status == true){
 			//	Output all server information
-			m_output.append("\nChecking Server: \n");
-			m_output.append("Address: "+m_details.getServer()+"\n");
-			m_output.append("SFTP Server: "+getServerId()+"\n");
-			m_output.append("Server connected successfully\n\n");
+			m_output += "\nChecking Server: \n";
+			m_output += "Address: "+m_details.getServer()+"\n";
+			m_output += "Server: "+getServerId()+"\n";
+			m_output += "Server connected successfully\n\n";
 			
 			try{
-				m_output.append("Checking Site root: \n");
+				m_output += "Checking Site root: \n";
 				status = isDirectory(m_details.getSiteRoot());
 				
 				if(status == true){
-					m_output.append("Site root exists\n");
+					m_output += "Site root exists\n";
 				}else{
-					m_output.append("ILLEGAL: The requested site root, is a recognised file\n");
+					m_output += "ILLEGAL: The requested site root, is a recognised file\n";
 				}
 			}catch(Exception e){
-//				Site root doesnt exist, better say so
-				m_output.append("WARNING: Site root does NOT exist\n");
-				m_output.append("(Possibly this is because it doesnt exist yet)\n");
+				//	Site root doesnt exist, better say so
+				m_output += "WARNING: Site root does NOT exist\n";
+				m_output += "(Possibly this is because it doesnt exist yet)\n";
 			}
 			
-			m_output.append("SERVER TEST: OK\n");
+			m_output += "SERVER TEST: OK\n";
 		}else{
-			m_output.append("SERVER TEST: FAILED\n");
+			m_output += "SERVER TEST: FAILED\n";
 			status = false;
 		}
 		//	Close the server and return the status

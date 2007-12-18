@@ -30,47 +30,121 @@ import com.sshtools.j2ssh.SftpClient;
 import com.sshtools.j2ssh.FileTransferProgress;
 import com.sshtools.j2ssh.configuration.ConfigurationLoader;
 import com.sshtools.j2ssh.transport.IgnoreHostKeyVerification;
+
 import java.io.*;
 import java.util.*;
 
 import com.antimatterstudios.esftp.directory.FileList;
+import com.antimatterstudios.esftp.ui.ConsoleDisplayMgr;
 
-public class TransferSSHTools extends Transfer {
+public class TransferSSHTools extends Transfer
+{
+	private ESFTPMonitor m_monitor;
+	
+	/**	Transfer monitor to watch the progress of files
+	 * 
+	 * @author Chris
+	 *
+	 */
+	private class ESFTPMonitor implements FileTransferProgress{
+		protected Transfer m_transfer;
+		protected long m_count;
+		protected long m_pt;
+		protected boolean m_cancel;
+		
+		public ESFTPMonitor(Transfer t){
+			//System.out.println("TRACE-> TransferMonitor::TransferMonitor()");
+			m_transfer = t;
+			m_cancel = false;
+		}
+		
+		public void setCancelled(){
+			m_cancel = true;
+		}
+
+	    public void started(long bytesTotal, String remoteFile){
+	    	//System.out.println("TRACE-> TransferMonitor::started("+remoteFile+", "+bytesTotal+")");
+			m_count = 0;
+			m_pt = System.currentTimeMillis();
+	    }
+
+	    public boolean isCancelled(){ 
+	    	//System.out.println("TRACE-> Monitor::isCancelled()");
+	    	return m_cancel;
+	    }
+
+	    public void progressed(long current){
+	    	System.out.println("Monitor::progressed("+current+")");
+	    	long diff = current - m_count;
+	    	m_count = current;
+			
+			long ct = System.currentTimeMillis();
+			long dt = ct - m_pt;
+			m_pt = ct;
+			
+			long bytesPerSec = (long)(diff * (1000.0/(double)dt));
+
+			m_transfer.update(bytesPerSec,diff);
+	    }
+
+	    public void completed(){
+	    	//System.out.println("TRACE-> Monitor::completed()");
+	    }
+	}
+	/*************************************/
+	/**	End of TransferMonitor class **/
+	/*************************************/
+	
 	protected SshClient m_ssh;
 	protected SftpClient m_sftp;
-	protected TransferMonitor m_sftpMonitor;
 	
 	protected void createRemoteDirectory(String dir) {
-		m_output.println("TransferSSHTools::createRemoteDirectory(String dir)");
+		System.out.println("TransferSSHTools::createRemoteDirectory("+dir+")");
+		
+		String status = FileList.MSG_FAILED;
+		
 		try{
-			//	Stat the item, if found directory or file, set the status
-			//	This is an error, if the directory/file exists here, you can't
-			//	create anything
-			m_output.println("[ryan]directory = "+dir);
-			FileAttributes attrib = m_sftp.stat(dir);
-			m_output.println("[ryan]attrib = "+attrib+", attrib string = "+attrib.toString());
+			dir = m_details.getSiteRoot()+dir;
 			
-			if(attrib.isDirectory() == true){
-				m_fileList.setStatus(m_count, FileList.DEXIST);
-			}else{
-				m_fileList.setStatus(m_count, FileList.FEXIST);
-			}
-		}catch(IOException e){
-			//	If the item doesnt exist, create a directory with the same name
-			try{
-				m_sftp.mkdir(dir);
-				m_fileList.setStatus(m_count, FileList.OK);
-			}catch(IOException mk){
-				m_output.append(m_errorPrefix+e.getMessage() +": "+e.getCause());
-				m_fileList.setStatus(m_count,FileList.DEXIST);
-			}
+			String testDir = "";
+			String tokens[] = dir.split("/");
+			for(int a=0;a<tokens.length;a++){
+				System.out.println("Token: "+tokens[a]);
+				testDir+=tokens[a]+"/";
+				
+				try{
+					FileAttributes attrib = m_sftp.stat(testDir);
+					
+					//	If these match, it's because this was the directory you TRIED to create
+					//	You can't set the status of this if it was the parent directories, because you have
+					//	to create the parent directories automatically for the user (because sometimes the site root doesnt exist)
+					if(testDir == dir){
+						status = (attrib.isDirectory() == true) ? FileList.MSG_DEXIST : FileList.MSG_FEXIST;
+					}
+				}catch(IOException ioe){
+					//	If the item doesnt exist, create a directory with the same name
+					status = FileList.MSG_OK;
+					try{
+						System.out.println("Attempt to create remote directory: '"+testDir+"'");
+						m_sftp.mkdir(testDir);
+					}catch(IOException mk){
+						System.out.println(m_errorPrefix+mk.getMessage() +": "+mk.getCause());
+						status = FileList.MSG_DEXIST;
+					}
+				}
+			}	
+		}catch(Exception e){
+			Activator.consolePrintln("EXCEPTION: There was a problem creating the directory: "+dir, ConsoleDisplayMgr.MSG_ERROR);
+			Activator.consolePrintln("EXCEPTION INFO: "+e.getMessage(),ConsoleDisplayMgr.MSG_ERROR);
 		}
+		
+		m_fileList.setStatus(m_count, status);
 	}
 	
 	protected boolean attemptPasswordAuthentication(String username, String password)
 	{
 		int result = 0;
-		m_output.println("Attempting Password Authentication");
+		Activator.consolePrintln("Attempting Password Authentication",ConsoleDisplayMgr.MSG_INFORMATION);
 		
 		// Create a password authentication instance
 		PasswordAuthenticationClient pwd = new PasswordAuthenticationClient();
@@ -82,10 +156,10 @@ public class TransferSSHTools extends Transfer {
 		// Try the authentication
 		result = AuthenticationProtocolState.FAILED;
 		try{
-			m_output.println("Authenticating now");
+			System.out.println("Authenticating now");
 			result = m_ssh.authenticate(pwd);
 		}catch(IOException e){
-			m_output.println("FAILED TO AUTHENTICATE");
+			Activator.consolePrintln("FAILED TO AUTHENTICATE",ConsoleDisplayMgr.MSG_INFORMATION);
 			setTask(TASK_ERROR,new String[]{m_errorPrefix+"auth: "+e.getMessage() });
 		}
 
@@ -98,7 +172,7 @@ public class TransferSSHTools extends Transfer {
 	protected boolean attemptKeyboardAuthentication(String username, String password)
 	{
 		int result = 0;
-		System.out.println("Attempting Keyboard Authentication");
+		Activator.consolePrintln("Attempting Keyboard Authentication",ConsoleDisplayMgr.MSG_INFORMATION);
 		
 		KBIAuthenticationClient kbi = new KBIAuthenticationClient();
         kbi.setUsername(username);
@@ -123,7 +197,7 @@ public class TransferSSHTools extends Transfer {
 						System.out.println(p + response);						
 						prompts[i].setResponse(response);						
 					}
-				}else System.out.println("THERE ARE NO KBI PROMPTS");
+				}else Activator.consolePrintln("THERE ARE NO KBI PROMPTS",ConsoleDisplayMgr.MSG_INFORMATION);
 			}
 		});
   
@@ -151,62 +225,6 @@ public class TransferSSHTools extends Transfer {
 		System.out.println("Failed to login using PublicKeyAuthentication");
 		return false;
 	}
-
-	/**	Transfer monitor to watch the progress of files
-	 * 
-	 * @author Chris
-	 *
-	 */
-	public class TransferMonitor implements FileTransferProgress {
-		protected Transfer m_transfer;
-		protected long m_max;
-		protected long m_count;
-		protected long m_previous;
-		protected boolean m_cancel;
-		
-		public TransferMonitor(Transfer t){
-			//System.out.println("TRACE-> TransferMonitor::TransferMonitor()");
-			m_transfer = t;
-			m_cancel = false;
-		}
-		
-		public void setCancelled(){
-			m_cancel = true;
-		}
-
-	    public void started(long bytesTotal, String remoteFile){
-	    	//System.out.println("TRACE-> TransferMonitor::started("+remoteFile+", "+bytesTotal+")");
-			m_max = bytesTotal;
-			m_count = 0;
-			m_previous = System.currentTimeMillis();
-	    }
-
-	    public boolean isCancelled(){ 
-	    	//System.out.println("TRACE-> Monitor::isCancelled()");
-	    	return m_cancel;
-	    }
-
-	    public void progressed(long bytesSoFar){
-	    	m_output.println("Monitor::progressed("+bytesSoFar+")");
-	    	long diffBytes = bytesSoFar - m_count;
-	    	m_count = bytesSoFar;
-			
-			long current = System.currentTimeMillis();
-			long diff = current - m_previous;
-			m_previous = current;
-			
-			long bytesPerSec = (long)(diffBytes * (1000.0/(double)diff));
-
-			m_transfer.update(bytesPerSec,bytesSoFar);
-	    }
-
-	    public void completed(){
-	    	//System.out.println("TRACE-> Monitor::completed()");
-	    }
-	}
-	/*************************************/
-	/**	End of TransferMonitor class **/
-	/*************************************/
 	
 	public TransferSSHTools(){
 		m_errorPrefix = "ERROR: SSHTools: ";
@@ -236,8 +254,10 @@ public class TransferSSHTools extends Transfer {
 						m_details.getServer(), 
 						m_details.getPort(), 
 						new IgnoreHostKeyVerification());
+				
+				Activator.consolePrintln("Connected to the remote server", ConsoleDisplayMgr.MSG_INFORMATION);
 			}catch(IOException e){
-				Activator.consolePrintln(m_errorPrefix+"Connection Error", 1);
+				Activator.consolePrintln(m_errorPrefix+"Connection Error", ConsoleDisplayMgr.MSG_ERROR);
 				setTask(TASK_ERROR,new String[]{m_errorPrefix+"connect: "+e.getMessage() });
 				m_locked = false;
 				return m_open;
@@ -283,27 +303,37 @@ public class TransferSSHTools extends Transfer {
 	}
 
 	public void createMonitor() {
-		m_sftpMonitor = new TransferMonitor(this);
+		m_monitor = new ESFTPMonitor(this);
 	}
 
 	public void transfer(String dir, String item) throws Exception {
 		//	Transfer the item according to the mode
+		
+		String src,dst;
+		
 		try{
 			if(m_fileList.getMode() == TransferDetails.GET){
-				m_sftp.get(dir+item,dir+item, m_sftpMonitor);
+				src = m_details.getLocalRoot()+dir+item;
+				dst = m_details.getSiteRoot()+dir+item;
+				
+				m_sftp.get(src,dst, m_monitor);
 			}else{
-				m_sftp.put(dir+item,dir+item, m_sftpMonitor);
+				src = m_details.getLocalRoot()+dir+item;
+				dst = m_details.getSiteRoot()+dir+item;
+				
+				m_sftp.put(src,dst,m_monitor);
 			}
 		}catch(TransferCancelledException e){
 			//System.out.println("transfer cancelled: file doesnt exist to transfer");
-			m_fileList.setStatus(m_count, FileList.FNOTEXIST);
+			m_fileList.setStatus(m_count, FileList.MSG_FNOTEXIST);
+			Activator.consolePrintln("EXCEPTION: File does not exist: "+dir+item, ConsoleDisplayMgr.MSG_ERROR);
 		}
 	}
 	
 	public void cancelTransfer(){
-		m_sftpMonitor.setCancelled();
+		m_monitor.setCancelled();
 	}
-
+/*
 	public boolean setDirectories() {
 		boolean success = false;
 		try{
@@ -318,7 +348,7 @@ public class TransferSSHTools extends Transfer {
 				 *	if this excepts, it's cause the item doesnt exist, try to create it.
 				 *	if creation excepts itself, it'll get caught by the outside hanlder
 				 *	and false will return anyway
-				 */
+				 *
 				m_sftp.stat(m_details.getSiteRoot());
 			}catch(IOException nodir){
 				//	If this fails, it'll all fail, so return false so the transfer can't complete
@@ -334,32 +364,28 @@ public class TransferSSHTools extends Transfer {
 		}
 		
 		return success;
-	}
+	}*/
 	
-	public void list(String directory, Vector<String> files, Vector<String> folders){
+	public boolean list(String directory, Vector files, Vector folders){
 		//m_output.println("TransferSSHTools::getDirectoryList(): "+directory);
 		
 		//	Is the connection open?
 		if(m_open == true){
-			try{
-				//	build the directory you want to scan, from the root+directory
-				String tmp = m_details.getSiteRoot()+"/"+directory;
-				
+			try{				
 				//	Grab the contents of this directory
-				List<SftpFile> contents = m_sftp.ls(tmp);
+				List contents = m_sftp.ls(directory);
 				
 				//	Loop through all the returned values
-				Iterator<SftpFile> i = contents.iterator();
+				Iterator i = contents.iterator();
 				
 				while(i.hasNext()){
 					SftpFile entry = (SftpFile)i.next();
 					
 					//	Ignores anything with a . or .. in it
 					if(entry.getFilename().endsWith(".")) continue;
-					//m_output.println("[ryan]entry = "+entry+", entry filename = "+entry.getFilename());
+
 					//	Get the attributes for this directory item
 					FileAttributes attrib = entry.getAttributes();
-					//m_output.println("[ryan]attrib = "+attrib+", attrib string = "+attrib.toString());
 					
 					//	Is it a directory or file? add it to the appropriate array
 					if(attrib.isDirectory() == true && m_details.getRecurse() == true){
@@ -368,20 +394,23 @@ public class TransferSSHTools extends Transfer {
 						files.add(directory+entry.getFilename());
 					}
 				}
+				
+				return true;
 			}catch(IOException e){
 				//	There was an exception scanning this directory
 				//	TODO; This could possibly mean that the remote directory doesnt exist
-				m_output.println(m_errorPrefix+e.getMessage()+": "+e.getCause());
+				System.out.println(m_errorPrefix+e.getMessage()+": "+e.getCause());
 			}
 		}
+		
+		return false;
 	}	
 	
 	public boolean isDirectory(String dir) throws Exception{
-		m_output.println("TransferSSHTools::isDirectory(String dir)");
+		System.out.println("TransferSSHTools::isDirectory(String dir)");
 		try{
 			//	Stat the requested site root
 			FileAttributes attrib = m_sftp.stat(dir);
-			m_output.println("[ryan]attrib = "+attrib+", attrib string = "+attrib.toString());
 			
 			//	If directory, great, otherwise, show warning
 			if(attrib.isDirectory()) return true;
@@ -393,7 +422,7 @@ public class TransferSSHTools extends Transfer {
 	}	
 	
 	public long isFile(String file) throws Exception{
-		m_output.println("TransferSSHTools::isFile(String file)");
+		System.out.println("TransferSSHTools::isFile(String file)");
 		long size = -1;
 		try{
 			//	Stat the requested site root

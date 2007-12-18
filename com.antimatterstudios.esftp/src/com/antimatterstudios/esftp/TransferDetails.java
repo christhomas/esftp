@@ -27,7 +27,8 @@ import org.eclipse.core.resources.*;
 import com.antimatterstudios.esftp.Digest;
 import com.antimatterstudios.esftp.properties.*;
 
-public class TransferDetails {
+public class TransferDetails 
+{
 	protected IProject m_project;
 	protected String m_key = null;
 	protected EsftpPreferences m_store;
@@ -39,7 +40,8 @@ public class TransferDetails {
 	 *	initialise the transfer object with sftp details 
 	 *	These either come from the project properties, or the workspace preferences
 	 */
-	public TransferDetails(IProject project){
+	public TransferDetails(IProject project)
+	{
 		//System.out.println("TRACE-> TransferDetails::TransferDetails(IProject = "+project+")");
 
 		m_project = project;
@@ -52,7 +54,8 @@ public class TransferDetails {
 	 *	Initialise the transfer object with sftp details 
 	 *	These either come from the project properties, or the workspace preferences
 	 */	
-	public TransferDetails(EsftpPreferences store){
+	public TransferDetails(EsftpPreferences store)
+	{
 		//System.out.println("TRACE-> TransferDetails::TransferDetails(PropertyStore), are we testing the sftp server?");
 		m_store = store;
 	}
@@ -61,7 +64,8 @@ public class TransferDetails {
 	
 	/**	Output debugging information about the data stored in the PropertyStore
 	 */
-	public void debug(){
+	public void debug()
+	{
 		m_store.debug();
 	}
 	
@@ -76,7 +80,8 @@ public class TransferDetails {
 	 * @param hash	The hash object used to create the key
 	 * @return	the key to identify this server
 	 */
-	public String getKey(){
+	public String getKey()
+	{
 		//System.out.println("TRACE-> TransferDetails::getKey()");
 		//	Cache the key so you only have to do this once per object
 		if(m_key == null){
@@ -92,40 +97,53 @@ public class TransferDetails {
 		return m_key;
 	}
 	
-	public String getServer(){
+	public String getServer()
+	{
 		return m_store.getString(IProperty.SERVER);
 	}
 	
-	public int getPort(){
+	public int getPort()
+	{
 		return m_store.getInt(IProperty.PORT);
 	}
 	
-	public int getTimeout(){
+	public int getProtocol()
+	{
+		return m_store.getInt(IProperty.PROTOCOL);
+	}
+	
+	public int getTimeout()
+	{
 		return m_store.getInt(IProperty.TIMEOUT);
 	}
 		
-	public String getUsername(){
+	public String getUsername()
+	{
 		return m_store.getString(IProperty.USERNAME);
 	}
 	
-	public String getPassword(){
+	public String getPassword()
+	{
 		return m_store.getString(IProperty.PASSWORD);
 	}
 	
-	public boolean getSavePwd(){
+	public boolean getSavePwd()
+	{
 		return m_store.getBoolean(IProperty.SAVEPWD);
 	}
 	
-	public boolean getRecurse(){
+	public boolean getRecurse()
+	{
 		return m_store.getBoolean(IProperty.RECURSE);
 	}
 	
-	public boolean getEmptyDirectory(){
+	public boolean getEmptyDirectory()
+	{
 		return m_store.getBoolean(IProperty.EMPTY);
 	}
 	
-	public String getLocalRoot(){
-		//System.out.println("TRACE-> TransferDetails::getLocalRoot()");
+	public String getLocalRoot()
+	{
 		IPath p = m_project.getLocation();
 	
 		if(p != null){
@@ -135,7 +153,12 @@ public class TransferDetails {
 		return "";
 	}	
 	
-	public String getSiteRoot(){
-		return m_store.getString(IProperty.SITEROOT);
+	public String getSiteRoot()
+	{
+		String siteRoot = m_store.getString(IProperty.SITEROOT);
+		
+		if(siteRoot.endsWith("/") == false) siteRoot+="/";
+		
+		return siteRoot;
 	}
 }
