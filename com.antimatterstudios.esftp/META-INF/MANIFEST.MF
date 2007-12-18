@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Sftp Plug-in
 Bundle-SymbolicName: com.antimatterstudios.esftp; singleton:=true
-Bundle-Version: 1.1.0
+Bundle-Version: 1.1.1
 Bundle-Activator: com.antimatterstudios.esftp.Activator
 Bundle-Vendor: Chris Alex Thomas
 Bundle-Localization: plugin
@@ -10,7 +10,9 @@ Require-Bundle: org.eclipse.ui,
  org.eclipse.core.runtime,
  org.eclipse.core.resources,
  org.eclipse.jface.text,
- org.eclipse.ui.console
+ org.eclipse.ui.console,
+ org.apache.log4j;resolution:=optional,
+ org.apache.jakarta_log4j;resolution:=optional
 Eclipse-LazyStart: true
 Export-Package: com.antimatterstudios.esftp,
  com.antimatterstudios.esftp.actions,
@@ -19,4 +21,6 @@ Export-Package: com.antimatterstudios.esftp,
  com.antimatterstudios.esftp.ui
 Bundle-ClassPath: .,
  lib/commons-logging.jar,
- lib/esftp-sshtools.jar
+ lib/esftp-sshtools.jar,
+ lib/edtftpj.jar
+Bundle-RequiredExecutionEnvironment: J2SE-1.4
