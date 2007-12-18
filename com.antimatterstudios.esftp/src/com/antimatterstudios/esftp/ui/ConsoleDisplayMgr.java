@@ -28,6 +28,7 @@ import org.eclipse.jface.text.IDocument;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
+import org.eclipse.swt.graphics.Color;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PartInitException;
@@ -152,7 +153,10 @@ public class ConsoleDisplayMgr
 		if (msgConsoleStream == null) {
 			System.out.print("Error getting console message stream");
 		}else{
-			msgConsoleStream.setColor(Display.getCurrent().getSystemColor(swtColorId));
+			Color c = null;
+			Display d = Display.getCurrent();
+			if(d != null)	c = d.getSystemColor(swtColorId);
+			if(c != null) msgConsoleStream.setColor(c);
 		}
 		return msgConsoleStream;
 	}
