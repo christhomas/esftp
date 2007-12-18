@@ -37,9 +37,14 @@ public class TransferResultsConsole extends TransferResults {
 		super(t,fl);
 
  		for(int a=0;a<m_fileList.getNumItems();a++){
- 			Activator.consolePrint(m_fileList.getStatusString(a),1);			
+ 			int type = ConsoleDisplayMgr.MSG_INFORMATION;
+ 			
+ 			if(m_fileList.isError(a)) type = ConsoleDisplayMgr.MSG_ERROR;
+ 			if(m_fileList.isWarning(a)) type = ConsoleDisplayMgr.MSG_WARNING;
+ 			
+ 			Activator.consolePrint(m_fileList.getStatusString(a),type);
 		}
- 		Activator.getDefault().remove(m_transfer);	
+ 		Activator.getDefault().remove(m_transfer);
 		
 		Date now = new Date();
 		Activator.consolePrintln(now.toString()+ "\t" + m_transfer.getTransferSize(),1);
