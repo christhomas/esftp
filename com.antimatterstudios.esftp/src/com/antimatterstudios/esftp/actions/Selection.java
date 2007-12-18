@@ -50,14 +50,14 @@ abstract public class Selection implements IObjectActionDelegate {
 	 */
     protected IStructuredSelection m_selection;
 	protected Shell m_shell;
-	protected Vector<FileList> m_fileList;
+	protected Vector m_fileList;
 	
 	public Selection() {
 		super();
 
 		//	use for all the message dialogs you might want
 		m_shell = new Shell();
-		m_fileList = new Vector<FileList>();
+		m_fileList = new Vector();
 	}
 	
 	/**
