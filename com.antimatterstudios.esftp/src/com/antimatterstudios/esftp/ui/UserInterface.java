@@ -21,72 +21,84 @@
 
 package com.antimatterstudios.esftp.ui;
 
-import com.antimatterstudios.esftp.Activator;
-import com.antimatterstudios.esftp.Transfer;
-import com.antimatterstudios.esftp.TransferDetails;
 import com.antimatterstudios.esftp.properties.IProperty;
 import com.antimatterstudios.esftp.properties.EsftpPreferences;
+import com.antimatterstudios.esftp.ui.widgets.*;
 
 import org.eclipse.swt.widgets.*;
 import org.eclipse.swt.layout.*;
 import org.eclipse.swt.events.*;
 import org.eclipse.swt.SWT;
 
-public class UserInterface {
+public class UserInterface{
+	protected TabFolder m_tabFolder;
+	protected TabItem m_mainTab;
+	protected TabItem m_keybTab;
+	protected TabItem m_ignoreTab;
+	
+	protected Composite m_mainComposite;
+	
 	//	Main interface widgets
-	private Text m_server;
-	private Spinner m_port;
-	private Combo m_protocol;
-	private Spinner m_timeout;
-	private Text m_username;
-	private Text m_password;
-	private Button m_savePwd;
-	private Button m_recurse;
-	private Button m_createEmpty;
-	private Text m_siteRoot;
-	private Button m_siteRootBrowse;
-	private Button m_test;
-	private Text m_serverOutput;
+	protected Text m_server;
+	protected Spinner m_port;
+	protected Combo m_protocol;
+	protected Spinner m_timeout;
+	protected Text m_username;
+	protected Text m_password;
+	protected Button m_savePwd;
+	protected Button m_recurse;
+	protected Button m_createEmpty;
+	protected Text m_siteRoot;
+	protected Button m_siteRootBrowse;
+	protected Button m_test;
+	protected TestInterface m_testInterface;
+	protected SiteBrowser m_siteBrowser;
 	//	Ignore File widgets
-	private List m_ignoreFile;
-	private Button m_removePattern;
-	private Text m_enterPattern;
-	private Button m_addPattern;
-	private Button m_updatePattern;
+	protected List m_ignoreFile;
+	protected Button m_removePattern;
+	protected Text m_enterPattern;
+	protected Button m_addPattern;
+	protected Button m_updatePattern;
 	
-	EsftpPreferences m_store;
-	Listener m_modifyListener, m_testListener, m_siteBrowser;
+	protected EsftpPreferences m_store;
+	protected Listener m_modifyListener, m_siteBrowserCallback;
 	
-	public UserInterface(){}
+	public static String[] sftpProtocols = { "SFTP" };	
+	public static String[] ftpProtocols = { "FTP", "FTP/TLS", "FTP/SSL" };
 	
-	public Composite open(Composite parent, EsftpPreferences store){
-		TabFolder tabFolder = new TabFolder(parent,SWT.NONE);
-		
-		setupCallbacks();
-		
+	protected Control open(Composite parent, EsftpPreferences store)
+	{
 		m_store = store;
 		
+		m_tabFolder = new TabFolder(parent,SWT.NONE);
+
+		setupCallbacks();
+		
 		//	create the main esftp preferences tab
-		TabItem main = new TabItem(tabFolder, SWT.NULL);
-		main.setText("Preferences");
-		main.setControl(openMainPreferences(tabFolder));
+		m_mainTab = new TabItem(m_tabFolder, SWT.NULL);
+		m_mainTab.setText("Preferences");
+		m_mainTab.setControl(openMainPreferences(m_tabFolder));
 		
 		//	create the keybinding tab
-		TabItem keyb = new TabItem(tabFolder,SWT.NULL);
-		keyb.setText("Key Bindings");
-		keyb.setControl(openKeyBindingPreferences(tabFolder));		
+		m_keybTab = new TabItem(m_tabFolder,SWT.NULL);
+		m_keybTab.setText("Key Bindings");
+		m_keybTab.setControl(openKeyBindingPreferences(m_tabFolder));		
 		
-		TabItem ignore = new TabItem(tabFolder,SWT.NULL);
-		ignore.setText("Ignore Files");
-		ignore.setControl(openIgnoreFilePreferences(tabFolder));
+		m_ignoreTab = new TabItem(m_tabFolder,SWT.NULL);
+		m_ignoreTab.setText("Ignore Files");
+		m_ignoreTab.setControl(openIgnoreFilePreferences(m_tabFolder));
 		
 		updateInterface();
 		
-		return tabFolder;
+		return m_tabFolder;
 	}
 	
 	protected void setupCallbacks()
 	{
+//		TODO: look into this callback, is there any need to call compare?? because surely if the callback is used
+		//	it is because something has changed, therefore why are you comparing? the reason is to double check
+		//	but I would like to know if you HAVE to double check, or is it pointless to do so.
+		//	Maybe what happens is that "false" events are fired off when nothing actually changed
 		m_modifyListener = new Listener(){
 			public void handleEvent(Event e){
 				if(e.type == SWT.Modify){
@@ -98,32 +110,37 @@ public class UserInterface {
 			}
 		};
 		
-		m_testListener = new Listener(){
+		m_siteBrowserCallback = new Listener(){
 			public void handleEvent(Event e){
-				if(e.widget == m_test) test();
-			}
-		};
-		
-		m_siteBrowser = new Listener(){
-			public void handleEvent(Event e){
-				Shell shell = new Shell(SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL);
-				MessageBox messageBox = new MessageBox(shell, SWT.OK | SWT.ICON_ERROR);
-				messageBox.setMessage("Coming soon: to an eclipse near you!");
-				messageBox.setText("This feature is disabled");
-				messageBox.open();
-				shell.dispose();
+				showSiteBrowser();
 			}
 		};
 	}
 	
-	public Composite openMainPreferences(Composite parent)
+	protected void showSiteBrowser()
+	{
+		GridData data;
+		
+		m_siteBrowser.setVisible(true);
+		data = (GridData)m_siteBrowser.getLayoutData();
+		data.exclude=false;
+		m_siteBrowser.getParent().layout();
+
+		m_testInterface.setVisible(false);
+		data = (GridData)m_testInterface.getLayoutData();
+		data.exclude = true;
+		m_testInterface.getParent().layout();
+	}
+	
+	protected Composite openMainPreferences(Composite parent)
 	{		
 		Composite c = new Composite(parent, SWT.NULL);
 		GridLayout layout = new GridLayout();
 		layout.numColumns = 4;
 		c.setLayout(layout);
 		
-		c.setLayoutData(new GridData(GridData.FILL_BOTH));		
+		c.setLayoutData(new GridData(GridData.FILL_BOTH));
+		m_mainComposite = c;
 				
 		Label labelServer = new Label(c, SWT.NONE);
 		labelServer.setText("Server");
@@ -138,10 +155,19 @@ public class UserInterface {
 		m_port.addListener(SWT.Modify, m_modifyListener);
 	
 		new Label(c,SWT.NONE).setText("Protocol");
-		String items[] = { "SFTP", "FTP", "FTP/TLS (Disabled)", "FTP/SSL (Disabled)" };
-		m_protocol = new Combo(c, SWT.BORDER);		
+		
+		//	Concatenate all the protocols together into a single array
+		String items[] = new String[sftpProtocols.length+ftpProtocols.length];
+		System.arraycopy(sftpProtocols, 0, items, 0, sftpProtocols.length);
+		System.arraycopy(ftpProtocols, 0, items, sftpProtocols.length, ftpProtocols.length);
+		
+		//	TODO: Mark the FTP/TLS and FTP/SSL options as disabled for now
+		for(int i=sftpProtocols.length;i<items.length;i++){
+			if(items[i] != "FTP") items[i] = items[i]+" (Disabled for now)";
+		}
+
+		m_protocol = new Combo(c, SWT.BORDER | SWT.READ_ONLY);
 		m_protocol.setItems(items);
-		m_protocol.select(0);
 		m_protocol.setLayoutData(new GridData(SWT.FILL, SWT.NONE,true,false,1,1));
 		m_protocol.addListener(SWT.Modify, m_modifyListener);
 		
@@ -193,20 +219,22 @@ public class UserInterface {
 		
 		m_siteRootBrowse = new Button(c,SWT.NONE);
 		m_siteRootBrowse.setText("Browse");
-		m_siteRootBrowse.addListener(SWT.Selection,m_siteBrowser);
+		m_siteRootBrowse.addListener(SWT.Selection,m_siteBrowserCallback);
 		
-		m_test = new Button(c, SWT.NONE);
-		m_test.setText("Test settings");
-		m_test.addListener(SWT.Selection, m_testListener);				
+		//new Label(c, SWT.NONE);
+		m_testInterface = new TestInterface(c, SWT.NONE, this);
+		m_testInterface.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 4, 1));
 		
-		m_serverOutput = new Text(c, SWT.BORDER | SWT.MULTI | SWT.WRAP | SWT.V_SCROLL | SWT.READ_ONLY);
-		m_serverOutput.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 3, 5));
-		m_serverOutput.setText("<ESFTP Plugin (version: "+Activator.getDefault().getVersion()+") > Ready to test");	
+		m_siteBrowser = new SiteBrowser(c, SWT.NONE, this);
+		m_siteBrowser.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 4, 1));
 		
+		showTestInterface();
+
 		return c;
 	}	
 	
-	public Composite openKeyBindingPreferences(Composite parent){
+	protected Composite openKeyBindingPreferences(Composite parent)
+	{
 		Composite c = new Composite(parent, SWT.NULL);
 		GridLayout layout = new GridLayout();
 		layout.numColumns = 4;
@@ -259,7 +287,7 @@ public class UserInterface {
 		return c;
 	}
 	
-	public Composite openIgnoreFilePreferences(Composite parent)
+	protected Composite openIgnoreFilePreferences(Composite parent)
 	{
 		Composite c = new Composite(parent,SWT.NULL);
 		GridLayout layout = new GridLayout();
@@ -332,23 +360,6 @@ public class UserInterface {
 		return c;
 	}
 	
-	public void test(){
-		m_serverOutput.setText("<Testing SFTP Site>\nPlease Wait....\n");
-		m_serverOutput.update();
-		
-		updateStore();
-		TransferDetails details = new TransferDetails(m_store);
-		Transfer transfer = Activator.getDefault().getTransfer();
-		transfer.init(details);
-		
-		try{
-			m_store.putBoolean(IProperty.VERIFIED, transfer.test() );
-		}catch(NullPointerException e){
-			System.out.println("NPE detected whilst setting VERIFIED to the result of transfer.test()");
-		}
-		m_serverOutput.append( transfer.getTransferOuput() );
-	}
-	
 	/**
 	 * You are closing the user interface, you therefore have to grab all the data from 
 	 * the interface and store it in the store which is passed to you
@@ -364,7 +375,7 @@ public class UserInterface {
 		return modify;
 	}	
 		
-	private boolean compare(){
+	protected boolean compare(){
 		try{
 			if(!m_store.getString(IProperty.SERVER).equals(m_server.getText()) ) return false;
 			if( m_store.getInt(IProperty.PORT) != m_port.getSelection() ) return false;
@@ -391,6 +402,7 @@ public class UserInterface {
 			m_server.setText(m_store.getString(IProperty.SERVER));
 			m_port.setSelection(m_store.getInt(IProperty.PORT));
 			m_timeout.setSelection(m_store.getInt(IProperty.TIMEOUT));
+			m_protocol.select(m_store.getInt(IProperty.PROTOCOL));
 			m_username.setText(m_store.getString(IProperty.USERNAME));
 			m_password.setText(m_store.getString(IProperty.PASSWORD));
 			m_savePwd.setSelection(m_store.getBoolean(IProperty.SAVEPWD));
@@ -402,12 +414,50 @@ public class UserInterface {
 		m_store.debug();
 	}
 	
-	protected void updateStore()
+	public EsftpPreferences getPreferences()
 	{
+		return m_store;
+	}
+	
+	public void setVerified(boolean verified)
+	{
+		m_store.putBoolean(IProperty.VERIFIED, verified );
+	}
+	
+	public void setSiteRoot(String siteRoot)
+	{
+		m_siteRoot.setText(siteRoot);
+	}
+	
+	public String getSiteRoot()
+	{
+		return m_siteRoot.getText();
+	}
+	
+	public void showTestInterface()
+	{
+		System.out.println("showTestInterface()");
+		GridData data;
+		
+		m_siteBrowser.setVisible(false);
+		data = (GridData)m_siteBrowser.getLayoutData();
+		data.exclude=true;
+		m_siteBrowser.getParent().layout();
+
+		m_testInterface.setVisible(true);
+		data = (GridData)m_testInterface.getLayoutData();
+		data.exclude = false;
+		m_testInterface.getParent().layout();
+	}
+	
+	public void updateStore()
+	{
+		System.out.println("UI::updateStore()");
 		try{
 			m_store.putString(IProperty.SERVER,m_server.getText());
 			m_store.putInt(IProperty.PORT,m_port.getSelection());
 			m_store.putInt(IProperty.TIMEOUT,m_timeout.getSelection());
+			m_store.putInt(IProperty.PROTOCOL, m_protocol.getSelectionIndex());
 			m_store.putString(IProperty.USERNAME,m_username.getText());
 			m_store.putString(IProperty.PASSWORD,m_password.getText());
 			m_store.putBoolean(IProperty.SAVEPWD,m_savePwd.getSelection());

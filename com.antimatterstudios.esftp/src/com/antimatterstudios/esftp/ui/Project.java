@@ -38,13 +38,13 @@ public class Project extends PropertyPage {
 	 */
 	public Project() {
 		super();
-		m_interface= new UserInterface();
 	}
 
 	protected Control createContents(Composite parent) { 
+		m_interface = new UserInterface(); // TODO: Move this to the constructor
 		m_store = new ProjectPreferences((IProject)getElement()); // TODO: Move to the constructor
 		
-		return m_interface.open(parent,m_store);
+		return m_interface.open(parent, m_store);
 	}
 	
 	public boolean performOk() {
@@ -64,5 +64,5 @@ public class Project extends PropertyPage {
 	public void performDefaults(){
 		m_store.restoreDefaults();
 		m_interface.updateInterface();
-	}
+	}	
 }

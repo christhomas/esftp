@@ -51,7 +51,7 @@ public class Workbench
 		m_interface = new UserInterface(); // TODO: Move this to the constructor
 		m_store = new WorkspacePreferences(); // TODO: Move this to the constructor also?
 		
-		return m_interface.open(parent,m_store);
+		return m_interface.open(parent, m_store);
 	}	
 	
 	public void init(IWorkbench workbench){}
