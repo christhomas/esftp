@@ -26,29 +26,42 @@ import java.util.Vector;
 import org.eclipse.core.resources.IContainer;
 import com.antimatterstudios.esftp.Transfer;
 
-public class RemoteDirectory extends Directory {
+public class RemoteDirectory extends Directory
+{
 	protected boolean m_open;
 	
-	public RemoteDirectory(Transfer t){
+	public RemoteDirectory(Transfer t)
+	{
 		//System.out.println("TRACE-> RemoteDirectory::RemoteDirectory()");
 		m_size = 0;
 		m_transfer = t;
 		m_details = m_transfer.getTransferDetails();
 	}	
 	
-	public void process(Object item, Vector files, Vector folders) {
+	public boolean process(Object item, Vector files, Vector folders)
+	{
+		System.out.println("RD::process(object, v, v");
 		IContainer c = (IContainer)item;
-		String directory = c.getLocation().toPortableString() + "/";
+		String directory = c.getLocation().toPortableString();
 		directory = makeRelative(directory, m_details.getLocalRoot());
-		
-		process(directory,files,folders);
+		System.out.println("RemoteDirectory::process(), directory = '"+directory+"'");
+		return process(directory,files,folders);
 	}
 	
-	protected void process(String directory, Vector files, Vector folders){
+	protected boolean process(String directory, Vector files, Vector folders)
+	{
+		System.out.println("RD::process('"+directory+"', v, v)");
+		//	Cancel button test here
+		if(m_transfer.isCancelled()){
+			m_transfer.setTask(Transfer.TASK_CANCEL, new String[]{});
+			m_transfer.close();
+			return false;
+		}
+		
 		Vector tfiles = new Vector();
 		Vector tfolders = new Vector();
 		
-		list(directory,tfiles,tfolders);
+		if(list(directory,tfiles,tfolders) == false) return false;
 		
 		/*	Possible combinations: 
 		 * files = 0 && create empty = true		create
@@ -63,26 +76,44 @@ public class RemoteDirectory extends Directory {
 		//	Add anything thats left, if nothing, nothing will get added
 		files.addAll(tfiles);
 		folders.addAll(tfolders);
+		
+		return true;
 	}	
 	
-	protected void list(String directory, Vector files, Vector folders) {
-		//System.out.println("Number Files: \t"+files.size()+"\tNumber Folders: "+folders.size());
+	protected boolean list(String directory, Vector files, Vector folders)
+	{
+		System.out.println("RD::list("+directory+",v,v)");
 		
-		if(directory.length() > 0) folders.add( directory );
 		folders.add( directory );
 
 		m_transfer.setSubTask(Transfer.STASK_SCANNING, new String[] { directory });
 		
 		Vector subdir = new Vector();
-		m_transfer.list(directory, files, subdir);
+		
+		int retries = 3;
+		while(retries > 0){		
+			if(m_transfer.list(directory,files,subdir) == true){
+				for(int a=0;a<subdir.size();a++){
+					if(process((String)subdir.get(a), files, folders) == false)	return false;
+				}
+				
+				return true;
+			}else{
+				files.clear();
+				subdir.clear();
+			}
 			
-		for(int a=0;a<subdir.size();a++){
-			process((String)subdir.get(a), files, folders);
+			retries--;
 		}
+		
+		return false;
 	}
 	
-	public long getNumBytes(Vector files){
+	public long getNumBytes(Vector files)
+	{
 		for(int a=0;a<files.size();a++){
+			if(m_transfer.isCancelled()) return -1;
+			
 			String filename = (String)files.get(a);
 			try{
 				long s = m_transfer.isFile(filename);

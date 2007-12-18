@@ -43,21 +43,23 @@ public class FileList {
 	protected Vector m_folders, m_files, m_status;
 
 	//	These are status messages for each file that gets transferred
-	public static final String OK = "OK";
-	public static final String FAILED = "FAILED";
-	public static final String NOSTATUS = "NO STATUS";
-	public static final String CANCEL = "TRANSFER CANCELLED";
+	public static final String MSG_OK = "OK";
+	public static final String MSG_FAILED = "FAILED";
+	public static final String MSG_NOSTATUS = "NO STATUS";
+	public static final String MSG_CANCEL = "TRANSFER CANCELLED";
 
-	public static final String DEXCEPTION = "DEXCEPTION";
-	public static final String DUNKNOWN = "DIRECTORY UNKNOWN";
-	public static final String DEXIST = "DIRECTORY EXISTS";
-	public static final String DFEXIST = "DIRECTORY CREATE FAILED, FILE EXISTS";
-	public static final String DNOTEXIST = "DIRECTORY DOES NOT EXIST";
+	public static final String MSG_DEXCEPTION = "DEXCEPTION";
+	public static final String MSG_DUNKNOWN = "DIRECTORY UNKNOWN";
+	public static final String MSG_DEXIST = "DIRECTORY EXISTS";
+	public static final String MSG_DFEXIST = "DIRECTORY CREATE FAILED, FILE EXISTS";
+	public static final String MSG_DNOTEXIST = "DIRECTORY DOES NOT EXIST";
 
-	public static final String FZERO = "FILE SIZE ZERO";
-	public static final String FEXIST = "FILE EXISTS";
-	public static final String FDEXIST = "FILE CREATE FAILED, DIRECTORY EXISTS";
-	public static final String FNOTEXIST = "FILE DOES NOT EXIST";
+	public static final String MSG_FZERO = "FILE SIZE ZERO";
+	public static final String MSG_FEXIST = "FILE EXISTS";
+	public static final String MSG_FDEXIST = "FILE CREATE FAILED, DIRECTORY EXISTS";
+	public static final String MSG_FNOTEXIST = "FILE DOES NOT EXIST";
+	
+	public static final int ERR_CANCEL = -1;
 
 	public FileList(IProject p) {
 		//System.out.println("TRACE-> FileList::FileList(IProject:"+p+")");
@@ -178,10 +180,10 @@ public class FileList {
 	}
 	
 	public String getStatus(int a) {
-		String s = NOSTATUS;
+		String s = MSG_NOSTATUS;
 		if (a < m_status.size()) {
 			String tmp = (String) m_status.get(a);
-			if (tmp != null) s = tmp;			
+			if (tmp != null) s = tmp;
 		}
 		return s;
 	}
@@ -197,6 +199,30 @@ public class FileList {
 			return transferType + (String) m_files.get(a) + "\t\t" + s + "\n";
 		}
 		return "Cannot find file index";
+	}
+	
+	public boolean isError(int a){
+		if(a < m_status.size()){
+			String s = (String) m_status.get(a);
+			if(s == FileList.MSG_OK) return false;
+			if(s == FileList.MSG_DEXIST) return false;
+			
+			return true;
+		}
+		
+		return true;
+	}
+	
+	public boolean isWarning(int a)
+	{
+		if(a < m_status.size()){
+			String s = (String) m_status.get(a);
+			
+			if(s == FileList.MSG_DEXIST) return true;
+			if(s == FileList.MSG_CANCEL) return true;
+		}
+		
+		return false;
 	}
 	
 	/**
@@ -341,7 +367,12 @@ public class FileList {
 
 		//System.out.println("We are now going to process directories for all files and folders");
 		for (int a = 0; a < m_folders.size(); a++){
-			d.process(m_folders.get(a), files, folders);
+			if(d.process(m_folders.get(a), files, folders) == false){
+				System.out.println("FL::optimise(), processing returned false, cancel all further operations");
+				return FileList.ERR_CANCEL;
+			}else{
+				System.out.println("FL::optimise(), folder: "+m_folders.get(a)+", processed correctly");
+			}
 		}
 
 		/**
@@ -389,8 +420,11 @@ public class FileList {
 		 */
 		//System.out.println("We can now build the final file list");
 		m_files.addAll(files);
-		m_files.addAll(folders);
 		m_size = d.getNumBytes(m_files);
+		//	Check if cancel occured at this stage, if so, return cancel
+		if(m_size == -1) return FileList.ERR_CANCEL;
+		
+		m_files.addAll(folders);
 		// Clear the folders vector, since it's contents have been transferred
 		m_folders.clear();
 

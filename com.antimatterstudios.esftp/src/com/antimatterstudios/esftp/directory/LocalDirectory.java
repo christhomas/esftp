@@ -28,15 +28,20 @@ import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
 
-public class LocalDirectory extends Directory {	
-	public LocalDirectory(Transfer t){
+public class LocalDirectory extends Directory
+{
+	public LocalDirectory(Transfer t)
+	{
 		//System.out.println("TRACE-> LocalDirectory::LocalDirectory()");
 		m_size = 0;
 		m_transfer = t;
 		m_details = m_transfer.getTransferDetails();
 	}
 	
-	public void process(Object item, Vector files, Vector folders) {
+	public boolean process(Object item, Vector files, Vector folders)
+	{
+		if(m_transfer.isCancelled()) return false;
+		
 		//System.out.println("TRACE-> LocalDirectory::process(Object item, Vector files,Vector folders)");
 		Vector tfiles = new Vector();
 		Vector tfolders = new Vector();
@@ -56,9 +61,12 @@ public class LocalDirectory extends Directory {
 		//	Add anything thats left, if nothing, nothing will get added
 		files.addAll(tfiles);
 		folders.addAll(tfolders);
+		
+		return true;
 	}	
 
-	protected void list(Object item, Vector files, Vector folders) {
+	protected boolean list(Object item, Vector files, Vector folders)
+	{
 		//System.out.println("TRACE-> LocalDirectory::list(Object item, Vector files,Vector folders)");
 		//System.out.println("Number Files: \t"+files.size()+"\tNumber Folders: "+folders.size());
 		
@@ -66,7 +74,9 @@ public class LocalDirectory extends Directory {
 		
 		//	append / and make sure any that end with // are converted to /
 		String localRoot = m_details.getLocalRoot();
-		String directory = c.getLocation().toPortableString()+"/";
+		String directory = c.getLocation().toPortableString();
+		if(directory.endsWith("/") == false) directory+="/";
+		
 		String relative = makeRelative(directory, localRoot);
 		if(relative.length() > 0) folders.add( relative );		
 		
@@ -79,7 +89,7 @@ public class LocalDirectory extends Directory {
 				String str = r[a].getLocation().toPortableString();
 				switch(r[a].getType()){
 					case IResource.FILE:						
-						//System.out.println("Found item = "+str);						
+						System.out.println("Found file = "+str);						
 						
 						files.add( makeRelative(str, localRoot) );
 					break;
@@ -90,9 +100,11 @@ public class LocalDirectory extends Directory {
 						 * Is this if statement necessary? it seems it's made inside a similar statement above
 						 */
 						//System.out.println("Test if we can recurse subdirs");
+						System.out.println("Found folder = "+str);
+						
 						if(m_details.getRecurse() == true){
 							//System.out.println("yes, we can");
-							process((Object)r[a],files,folders);
+							if(process((Object)r[a],files,folders) == false) return false;
 						}//else System.out.println("no we can't");
 					break;
 				}
@@ -102,9 +114,12 @@ public class LocalDirectory extends Directory {
 			//	TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+		return true;
 	}
 	
-	public long getNumBytes(Vector files){
+	public long getNumBytes(Vector files)
+	{
 		//	Loop through all the files, adding up the lengths of ALL the files
 		//	contained in the file array
 		for(int a=0;a<files.size();a++){

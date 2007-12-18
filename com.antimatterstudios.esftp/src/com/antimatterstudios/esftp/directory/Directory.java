@@ -33,7 +33,7 @@ public abstract class Directory {
 	 * Processes all the results from the directory lists
 	 *
 	 */
-	public abstract void process(Object item, Vector files, Vector folders);
+	public abstract boolean process(Object item, Vector files, Vector folders);
 	
 	/** 
 	 * Convert a absolute file system name to a relative one
@@ -42,11 +42,16 @@ public abstract class Directory {
 	 * @returns String The new relative path
 	 */
 	public String makeRelative(String item, String root){
-		//System.out.println("TRACE-> Directory::makeRelative("+item+","+root+")");
+		System.out.println("TRACE-> Directory::makeRelative('"+item+"','"+root+"')");
 		//	If it's a directory and has // on the end, reduce it to /
 		if(item.endsWith("//")) item = item.substring(0,item.length()-1);
+		//	Chop off the last directory separator from the root
+		//if(root.endsWith("/")) root = root.substring(0,root.length()-1);
 		
-		return item.substring(root.length());
+		String relative = item.substring(root.length());
+		System.out.println("makeRelative() returning: "+relative);
+		
+		return (relative.startsWith("/")) ? relative.substring(1) : relative;
 	}
 	
 	/**
