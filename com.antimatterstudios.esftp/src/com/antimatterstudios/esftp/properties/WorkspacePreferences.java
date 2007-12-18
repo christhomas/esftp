@@ -1,18 +1,18 @@
 package com.antimatterstudios.esftp.properties;
 
 import org.eclipse.core.runtime.preferences.InstanceScope;
-import org.eclipse.core.runtime.preferences.DefaultScope;
+
+import com.antimatterstudios.esftp.Activator;
 
 public class WorkspacePreferences extends EsftpPreferences
 {	
-	public WorkspacePreferences()
+	protected void setupScope()
 	{
-		super(new InstanceScope().getNode(EsftpPreferences.m_projectID));
+		m_original = new InstanceScope().getNode(Activator.PLUGIN_ID);
 	}
 	
-	public void restoreDefaults(){
-		clear();
-		m_preferences = new InstanceScope().getNode(EsftpPreferences.m_projectID);
-		clone(new EsftpPreferences(new DefaultScope().getNode(EsftpPreferences.m_projectID)));
-	}			
+	public WorkspacePreferences()
+	{
+		setupWorkingCopy();
+	}
 }

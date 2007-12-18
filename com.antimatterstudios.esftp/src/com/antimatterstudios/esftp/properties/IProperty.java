@@ -33,4 +33,10 @@ public interface IProperty {
 	public static final String RECURSE = "Recurse Subdirectories";
 	public static final String EMPTY = "Create Empty Directories";
 	public static final String SITEROOT = "Site Root";
+	
+	//	Protocol sub options
+	public static final int PROTOCOL_SFTP = 0;
+	public static final int PROTOCOL_FTP = 1;
+	public static final int PROTOCOL_FTPTLS = 2;
+	public static final int PROTOCOL_FTPSSL = 3;
 }
