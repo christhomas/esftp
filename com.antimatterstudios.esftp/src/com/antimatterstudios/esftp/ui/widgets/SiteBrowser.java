@@ -174,7 +174,7 @@ public class SiteBrowser extends Composite
 						String selected = m_labelProvider.getText(item);
 					
 						if(selected != "<Disconnected>"){
-							selected = m_details.getSiteRoot()+item.getFullName();
+							selected = item.getFullName();
 							
 							m_userInterface.setSiteRoot(selected);
 						}
